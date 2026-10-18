@@ -4,13 +4,24 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Juegos Familiares</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Grenze+Gotisch:wght@600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <main>
     <h1>Juegos Familiares</h1>
-    <p id="estado">En construcción</p>
+    <p class="ayuda">¿A qué jugamos?</p>
+
+    <!-- Un enlace por juego. Cada juego vive en su propia carpeta. -->
+    <nav class="juegos">
+      <a class="juego mazmorra" href="mazmorra/">
+        <span class="icono" aria-hidden="true">🗝️</span>
+        <span class="nombre">Mazmorra</span>
+        <span class="detalle">Héroes contra el Señor Oscuro · 2 a 5 jugadores</span>
+      </a>
+    </nav>
   </main>
-  <script src="js/main.js"></script>
 </body>
 </html>

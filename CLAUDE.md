@@ -1,7 +1,13 @@
 # Juegos Familiares
 
 Proyecto personal: juegos para jugar en familia desde el navegador (móvil, tablet u ordenador).
-Se publica en GitHub Pages desde la cuenta `jmorecru`.
+Se publica en GitHub Pages desde la cuenta `jmorecru` (repositorio `jmorecru/juegos-familiares`).
+
+## Estructura
+- La raíz (`index.html` + `styles.css`) es solo la **selección de juego**.
+- **Cada juego en su carpeta** (`mazmorra/`, …) con sus páginas, estilos, `README.md` y documentación propios.
+  Lo que es de un juego no va en la raíz.
+- Todos comparten origen (`jmorecru.github.io`): las claves de localStorage llevan el prefijo del juego.
 
 ## Cómo se trabaja aquí
 - **Sin frameworks ni build**: HTML, CSS y JavaScript que el navegador carga directamente. Nada de npm, bundlers ni transpiladores salvo que se decida explícitamente y se apunte en `PENDIENTES.md`.

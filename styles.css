@@ -1,6 +1,8 @@
+/* Estilos de la portada (selección de juego). Cada juego trae los suyos en su carpeta. */
 :root {
   --fondo: #fffaf2;
   --texto: #2b2b2b;
+  --tenue: #6b6460;
   --acento: #e4572e;
 }
 
@@ -9,11 +11,38 @@
 body {
   margin: 0;
   min-height: 100vh;
-  display: grid;
-  place-items: center;
-  font-family: system-ui, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  font-family: 'Fredoka', system-ui, sans-serif;
   background: var(--fondo);
   color: var(--texto);
+  text-align: center;
 }
 
-h1 { color: var(--acento); }
+main { width: 100%; max-width: 720px; display: flex; flex-direction: column; gap: 16px; }
+h1 { color: var(--acento); font-size: clamp(2rem, 7vw, 3rem); margin: 0; }
+.ayuda { color: var(--tenue); font-size: 1.2rem; margin: 0; }
+
+.juegos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.juego {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 24px 16px; border-radius: 16px;
+  text-decoration: none;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, .18);
+}
+.juego:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0, 0, 0, .18); }
+.juego .icono { font-size: 3rem; line-height: 1; }
+.juego .nombre { font-size: 1.8rem; font-weight: 600; }
+.juego .detalle { font-size: .95rem; opacity: .8; }
+
+/* Colores de cada juego */
+.mazmorra { background: #1C2140; color: #F2E9D8; }
+.mazmorra .nombre { font-family: 'Grenze Gotisch', serif; font-size: 2.2rem; }
