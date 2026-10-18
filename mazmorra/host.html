@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tablero – prueba de humo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Grenze+Gotisch:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --noche: #1C2140;
+    --noche2: #262C52;
+    --losa: #B9A27C;
+    --losa2: #AD9570;
+    --muro: #3A3530;
+    --tinta: #F2E9D8;
+    --tenue: #A9A4C4;
+    --celda: 48px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--noche);
+    color: var(--tinta);
+    font-family: 'Fredoka', system-ui, sans-serif;
+    display: grid;
+    grid-template-columns: 1fr minmax(260px, 24vw);
+    overflow: hidden;
+  }
+  #zona { display: grid; place-items: center; padding: 2vmin; min-height: 0; }
+  #tablero { position: relative; }
+  .casilla { position: absolute; width: var(--celda); height: var(--celda); }
+  .losa { background: var(--losa); outline: 1px solid var(--losa2); }
+  .muro { background: var(--muro); border-radius: 3px; }
+  .ficha {
+    position: absolute; left: 0; top: 0;
+    width: var(--celda); height: var(--celda);
+    padding: 12%;
+    transition: transform 160ms ease-out;
+  }
+  .ficha div {
+    width: 100%; height: 100%; border-radius: 50%;
+    display: grid; place-items: center;
+    font-weight: 600; font-size: calc(var(--celda) * 0.42);
+    color: #fff; border: 3px solid rgba(255,255,255,.85);
+  }
+  .ficha.ausente div { opacity: .35; }
+  aside {
+    background: var(--noche2);
+    padding: 24px 20px;
+    display: flex; flex-direction: column; gap: 18px;
+    overflow-y: auto;
+  }
+  h1 { font-family: 'Grenze Gotisch', serif; font-weight: 600; font-size: 2rem; margin: 0; line-height: 1; }
+  #codigo { font-size: 3rem; font-weight: 600; letter-spacing: .12em; line-height: 1; }
+  #qr { background: var(--tinta); padding: 10px; border-radius: 8px; width: fit-content; }
+  #qr img, #qr canvas { display: block; }
+  .ayuda { color: var(--tenue); font-size: .95rem; margin: 0; }
+  #url { color: var(--tenue); font-size: .75rem; word-break: break-all; }
+  ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+  li { display: flex; align-items: center; gap: 10px; }
+  .punto { width: 16px; height: 16px; border-radius: 50%; flex: none; }
+  li .est { margin-left: auto; color: var(--tenue); font-size: .85rem; }
+  #log { font-size: .75rem; color: var(--tenue); margin-top: auto; min-height: 6em; }
+  #log p { margin: 2px 0; }
+  @media (max-aspect-ratio: 1/1) {
+    body { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+    aside { flex-direction: row; flex-wrap: wrap; align-items: flex-start; }
+    #log { display: none; }
+  }
+</style>
+</head>
+<body>
+  <div id="zona"><div id="tablero"></div></div>
+  <aside>
+    <h1>Mazmorra</h1>
+    <div>
+      <p class="ayuda">Código de sala</p>
+      <div id="codigo">····</div>
+    </div>
+    <div id="qr"></div>
+    <p class="ayuda">Escanea el código con el móvil para unirte.</p>
+    <div id="url"></div>
+    <ul id="lista"></ul>
+    <p class="ayuda" id="pantalla">Pantalla siempre encendida: comprobando…</p>
+    <p class="ayuda" id="modulos">Módulos ES: no</p>
+    <div id="log"></div>
+  </aside>
+
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+const PREFIJO = 'mazmorra-familia-';
+const MAX_JUGADORES = 5;
+const COLORES = ['#D7263D', '#1B6CA8', '#E0A000', '#2E8B57', '#7B3FA0'];
+const MAPA = [
+  '............',
+  '..##....##..',
+  '..#......#..',
+  '............',
+  '.....##.....',
+  '..#......#..',
+  '..##....##..',
+  '............',
+];
+const FILAS = MAPA.length, COLS = MAPA[0].length;
+const SALIDAS = [[0,0],[11,0],[0,7],[11,7],[6,3]];
+
+const jugadores = new Map();   // id -> {nombre, color, x, y, conn, ficha}
+let peer = null;
+
+/* ---------- utilidades ---------- */
+function log(txt) {
+  const el = document.getElementById('log');
+  const p = document.createElement('p');
+  p.textContent = new Date().toLocaleTimeString() + '  ' + txt;
+  el.prepend(p);
+  while (el.children.length > 8) el.lastChild.remove();
+}
+function guardar(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+function leer(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function nuevoCodigo() {
+  const letras = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  let c = '';
+  for (let i = 0; i < 4; i++) c += letras[Math.floor(Math.random() * letras.length)];
+  return c;
+}
+function esMuro(x, y) { return MAPA[y][x] === '#'; }
+function ocupada(x, y, salvo) {
+  for (const [id, j] of jugadores) if (id !== salvo && j.x === x && j.y === y) return true;
+  return false;
+}
+
+/* ---------- tablero ---------- */
+const tablero = document.getElementById('tablero');
+function dibujarTablero() {
+  for (let y = 0; y < FILAS; y++) for (let x = 0; x < COLS; x++) {
+    const c = document.createElement('div');
+    c.className = 'casilla ' + (esMuro(x, y) ? 'muro' : 'losa');
+    c.style.transform = `translate(calc(var(--celda) * ${x}), calc(var(--celda) * ${y}))`;
+    tablero.appendChild(c);
+  }
+}
+function ajustarTamano() {
+  const zona = document.getElementById('zona');
+  const w = zona.clientWidth * 0.96, h = zona.clientHeight * 0.96;
+  const celda = Math.floor(Math.min(w / COLS, h / FILAS));
+  document.documentElement.style.setProperty('--celda', celda + 'px');
+  tablero.style.width = celda * COLS + 'px';
+  tablero.style.height = celda * FILAS + 'px';
+}
+function pintarFicha(j) {
+  if (!j.ficha) {
+    j.ficha = document.createElement('div');
+    j.ficha.className = 'ficha';
+    j.ficha.innerHTML = '<div></div>';
+    tablero.appendChild(j.ficha);
+  }
+  const d = j.ficha.firstChild;
+  d.style.background = j.color;
+  d.textContent = (j.nombre || '?').charAt(0).toUpperCase();
+  j.ficha.style.transform = `translate(calc(var(--celda) * ${j.x}), calc(var(--celda) * ${j.y}))`;
+  j.ficha.classList.toggle('ausente', !conectado(j));
+}
+function pintarLista() {
+  const ul = document.getElementById('lista');
+  ul.innerHTML = '';
+  for (const j of jugadores.values()) {
+    const li = document.createElement('li');
+    li.innerHTML = '<span class="punto"></span><span class="nom"></span><span class="est"></span>';
+    li.querySelector('.punto').style.background = j.color;
+    li.querySelector('.nom').textContent = j.nombre;
+    li.querySelector('.est').textContent = conectado(j) ? 'conectado' : 'desconectado';
+    ul.appendChild(li);
+  }
+}
+function conectado(j) { return j.conn && j.conn.open; }
+function refrescar() {
+  for (const j of jugadores.values()) pintarFicha(j);
+  pintarLista();
+}
+
+/* ---------- red ---------- */
+function abrirSala(codigo, intentos = 0) {
+  peer = new Peer(PREFIJO + codigo, { debug: 1 });
+
+  peer.on('open', () => {
+    guardar('sala', codigo);
+    document.getElementById('codigo').textContent = codigo;
+    const url = new URL('mando.html?sala=' + codigo, location.href).href;
+    const qr = document.getElementById('qr');
+    qr.innerHTML = '';
+    new QRCode(qr, { text: url, width: 180, height: 180, colorDark: '#1C2140', colorLight: '#F2E9D8', correctLevel: QRCode.CorrectLevel.M });
+    document.getElementById('url').textContent = url;
+    log('Sala ' + codigo + ' abierta');
+  });
+
+  peer.on('connection', conn => {
+    conn.on('data', msg => procesar(conn, msg));
+    conn.on('close', () => perdida(conn));
+    conn.on('error', () => perdida(conn));
+  });
+
+  peer.on('disconnected', () => {
+    log('Sin servidor de emparejamiento, reintentando');
+    setTimeout(() => { if (!peer.destroyed) peer.reconnect(); }, 2000);
+  });
+
+  peer.on('error', err => {
+    log('Error: ' + err.type);
+    if (err.type === 'unavailable-id') {
+      // Tras recargar, el servidor puede tardar unos segundos en liberar el código anterior.
+      peer.destroy();
+      if (intentos < 4) setTimeout(() => abrirSala(codigo, intentos + 1), 3000);
+      else abrirSala(nuevoCodigo());
+    } else if (peer.destroyed) {
+      setTimeout(() => abrirSala(codigo), 3000);
+    }
+  });
+}
+
+function procesar(conn, msg) {
+  if (!msg || typeof msg !== 'object') return;
+
+  if (msg.tipo === 'ping') { conn.send({ tipo: 'pong', t: msg.t }); return; }
+
+  if (msg.tipo === 'hola') {
+    const id = String(msg.id || '').slice(0, 64);
+    const nombre = String(msg.nombre || 'Jugador').slice(0, 16);
+    let j = jugadores.get(id);
+    if (j) {
+      if (j.conn && j.conn !== conn) { try { j.conn.close(); } catch (e) {} }
+      j.conn = conn; j.nombre = nombre;
+      log(nombre + ' ha vuelto');
+    } else {
+      if (jugadores.size >= MAX_JUGADORES) { conn.send({ tipo: 'rechazado', motivo: 'La sala está llena.' }); return; }
+      const usados = new Set([...jugadores.values()].map(p => p.color));
+      const color = COLORES.find(c => !usados.has(c));
+      const salida = SALIDAS.find(([x, y]) => !ocupada(x, y)) || [0, 0];
+      j = { nombre, color, x: salida[0], y: salida[1], conn };
+      jugadores.set(id, j);
+      log(nombre + ' se une');
+    }
+    conn.jugadorId = id;
+    conn.send({ tipo: 'bienvenida', color: j.color, nombre: j.nombre });
+    enviarEstado();
+    refrescar();
+    return;
+  }
+
+  const j = jugadores.get(conn.jugadorId);
+  if (!j) return;
+
+  if (msg.tipo === 'mover') {
+    let dx = Math.sign(msg.dx | 0), dy = Math.sign(msg.dy | 0);
+    if (dx && dy) dy = 0;
+    const nx = j.x + dx, ny = j.y + dy;
+    const valido = nx >= 0 && ny >= 0 && nx < COLS && ny < FILAS && !esMuro(nx, ny) && !ocupada(nx, ny, conn.jugadorId);
+    if (valido) { j.x = nx; j.y = ny; pintarFicha(j); enviarEstado(); }
+    else conn.send({ tipo: 'bloqueado' });
+  }
+}
+
+function perdida(conn) {
+  const j = jugadores.get(conn.jugadorId);
+  if (j && j.conn === conn) { log(j.nombre + ' se ha desconectado'); refrescar(); }
+}
+
+function enviarEstado() {
+  // Cada mando recibe solo su propia información: así probamos ya la idea de información privada.
+  for (const j of jugadores.values()) {
+    if (conectado(j)) j.conn.send({ tipo: 'estado', x: j.x, y: j.y, total: jugadores.size });
+  }
+}
+
+/* ---------- pantalla siempre encendida ---------- */
+async function pedirPantalla() {
+  const txt = document.getElementById('pantalla');
+  if (!('wakeLock' in navigator)) { txt.textContent = 'Pantalla siempre encendida: no disponible en este navegador.'; return; }
+  try {
+    const bloqueo = await navigator.wakeLock.request('screen');
+    txt.textContent = 'Pantalla siempre encendida: sí.';
+    bloqueo.addEventListener('release', () => { txt.textContent = 'Pantalla siempre encendida: desactivada.'; });
+  } catch (e) {
+    txt.textContent = 'Pantalla siempre encendida: toca la pantalla para activarla.';
+  }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') pedirPantalla(); });
+document.addEventListener('pointerdown', pedirPantalla, { once: true });
+
+/* ---------- arranque ---------- */
+dibujarTablero();
+ajustarTamano();
+window.addEventListener('resize', ajustarTamano);
+pedirPantalla();
+abrirSala(leer('sala') || nuevoCodigo());
+</script>
+<!-- Fase 0: la Fase 1 usará módulos ES; si este navegador no los ejecuta, el texto se queda en "no". -->
+<script type="module">document.getElementById('modulos').textContent = 'Módulos ES: sí';</script>
+</body>
+</html>
