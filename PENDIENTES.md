@@ -20,7 +20,10 @@
   - con un móvil, la conexión se establece pero se corta a ratos («Se ha perdido la conexión»);
   - las fichas se dibujaban desplazadas (padding en % medido sobre el tablero).
   - Corregido y comprobado en Chrome: las fichas caen en su casilla y el tablero se reajusta al estrecharse la pantalla.
-  - Añadido el diagnóstico de conexión para averiguar el motivo de los cortes. Falta repetir en el Fire Stick.
+  - Añadido el diagnóstico de conexión para averiguar el motivo de los cortes.
+- Con la v7 en el Fire Stick y un móvil: tablero, casillas e indicador de jugador bien; conexión directa por la wifi
+  y 0 cortes. Resultados en `mazmorra/BRIEF_mazmorra.md`. Faltan tres móviles, latencia, reconexiones, 15 minutos
+  de pantalla y la tablet.
 - La portada y la de la mazmorra se ven bien a 390 px de ancho (móvil).
 - Indicador de versión: el hook escribe el número y la fecha en cada commit (comprobado en local). Con un servidor
   que simula una versión publicada más nueva, la página muestra el aviso amarillo para recargar.

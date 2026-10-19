@@ -100,21 +100,29 @@ Tipografías de Google Fonts: Fredoka (interfaz) y Grenze Gotisch (título).
 
 ### Resultados de la Fase 0
 
-Pendiente de rellenar tras la prueba en casa (lista completa en el `README.md` de esta carpeta).
+En curso. Lista completa en el `README.md` de esta carpeta.
 
-| Comprobación                                   | Fire Stick (Silk) | Tablet ( modelo / navegador ) |
-|------------------------------------------------|-------------------|-------------------------------|
-| Tres móviles a la vez, movimiento fluido       |                   |                               |
-| Latencia que marcan los móviles (ms)           |                   |                               |
-| Reconexión al bloquear y desbloquear un móvil  |                   |                               |
-| Reconexión al recargar el tablero              |                   |                               |
-| Pantalla encendida 15 minutos                  |                   |                               |
-| «Módulos ES: sí»                               |                   |                               |
-| Se ve bien desde la mesa / el sofá             |                   |                               |
+| Comprobación                                   | Fire Stick (Silk)                         | Tablet ( modelo / navegador ) |
+|------------------------------------------------|-------------------------------------------|-------------------------------|
+| Un móvil: movimiento, casillas y ficha         | OK (2026-10-19, v7)                       |                               |
+| Conexión y cortes                              | Directa por la wifi, 0 cortes (v7)        |                               |
+| Tres móviles a la vez, movimiento fluido       |                                           |                               |
+| Latencia que marcan los móviles (ms)           |                                           |                               |
+| Reconexión al bloquear y desbloquear un móvil  |                                           |                               |
+| Reconexión al recargar el tablero              |                                           |                               |
+| Pantalla encendida 15 minutos                  |                                           |                               |
+| «Módulos ES: sí»                               |                                           |                               |
+| Se ve bien desde la mesa / el sofá             | Tablero, casillas e indicador de jugador bien |                           |
 
 Móviles usados (modelo y navegador):
 Conclusión (Fire Stick, tablet o ambos):
-Incidencias:
+Incidencias (Fire Stick, 2026-10-19):
+- Hasta la v5, las fichas se dibujaban desplazadas por un `padding` en % (medido sobre el tablero). Corregido.
+- Hasta la v5, había cortes frecuentes («Se ha perdido la conexión»). Con la v7, 0 cortes y conexión directa por la wifi.
+  Causa más probable: el mando cerraba la conexión con el tablero ante cualquier error del servidor de
+  emparejamiento de PeerJS. Ahora lo ignora si la conexión está abierta. No está demostrado: confirmarlo con
+  la prueba de tres móviles.
+- WebRTC directo funciona en la wifi de casa: de momento no hace falta el plan B del servidor local.
 
 ## 4. Restricciones técnicas
 
