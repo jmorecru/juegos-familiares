@@ -22,5 +22,7 @@
   - Corregido y comprobado en Chrome: las fichas caen en su casilla y el tablero se reajusta al estrecharse la pantalla.
   - Añadido el diagnóstico de conexión para averiguar el motivo de los cortes. Falta repetir en el Fire Stick.
 - La portada y la de la mazmorra se ven bien a 390 px de ancho (móvil).
+- Indicador de versión: el hook escribe el número y la fecha en cada commit (comprobado en local). Con un servidor
+  que simula una versión publicada más nueva, la página muestra el aviso amarillo para recargar.
 - Desde la red del trabajo, `curl` falla con `CRYPT_E_NO_REVOCATION_CHECK` al abrir github.io: es la red,
   no el sitio. Para comprobar desde ahí, `curl --ssl-no-revoke`.
