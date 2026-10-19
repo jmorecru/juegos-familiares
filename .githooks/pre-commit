@@ -1,0 +1,8 @@
+#!/bin/sh
+# Escribe en version.js el número de versión (commits + 1) y la fecha, y lo añade al commit.
+# Se activa una vez por clon con: git config core.hooksPath .githooks
+raiz=$(git rev-parse --show-toplevel)
+numero=$(( $(git rev-list --count HEAD 2>/dev/null || echo 0) + 1 ))
+fecha=$(date '+%Y-%m-%d %H:%M')
+sed -i "s/^const VERSION = .*/const VERSION = { numero: $numero, fecha: '$fecha' };/" "$raiz/version.js"
+git add "$raiz/version.js"

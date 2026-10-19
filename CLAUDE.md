@@ -8,6 +8,9 @@ Se publica en GitHub Pages desde la cuenta `jmorecru` (repositorio `jmorecru/jue
 - **Cada juego en su carpeta** (`mazmorra/`, …) con sus páginas, estilos, `README.md` y documentación propios.
   Lo que es de un juego no va en la raíz.
 - Todos comparten origen (`jmorecru.github.io`): las claves de localStorage llevan el prefijo del juego.
+- **Versión visible** en todas las páginas con `version.js`: cada página nueva lo carga antes de `</body>`.
+  El número lo pone el hook `.githooks/pre-commit`. Comprueba que `git config core.hooksPath` devuelve
+  `.githooks` antes de hacer commit.
 
 ## Cómo se trabaja aquí
 - **Sin frameworks ni build**: HTML, CSS y JavaScript que el navegador carga directamente. Nada de npm, bundlers ni transpiladores salvo que se decida explícitamente y se apunte en `PENDIENTES.md`.
