@@ -16,6 +16,11 @@
   GitHub Pages activado desde `main`, carpeta raíz. Las cinco páginas responden 200 en
   <https://jmorecru.github.io/juegos-familiares/>.
 - Chrome de escritorio ejecuta los módulos ES del tablero («Módulos ES: sí»). Falta comprobarlo en Silk y en la tablet.
+- Primera prueba en el Fire Stick (2026-10-19):
+  - con un móvil, la conexión se establece pero se corta a ratos («Se ha perdido la conexión»);
+  - las fichas se dibujaban desplazadas (padding en % medido sobre el tablero).
+  - Corregido y comprobado en Chrome: las fichas caen en su casilla y el tablero se reajusta al estrecharse la pantalla.
+  - Añadido el diagnóstico de conexión para averiguar el motivo de los cortes. Falta repetir en el Fire Stick.
 - La portada y la de la mazmorra se ven bien a 390 px de ancho (móvil).
 - Desde la red del trabajo, `curl` falla con `CRYPT_E_NO_REVOCATION_CHECK` al abrir github.io: es la red,
   no el sitio. Para comprobar desde ahí, `curl --ssl-no-revoke`.

@@ -88,6 +88,13 @@ Tipografías de Google Fonts: Fredoka (interfaz) y Grenze Gotisch (título).
   genera uno nuevo.
 - Un jugador que vuelve con el mismo `id` recupera su ficha y su color.
 - El estado de la partida **no** se persiste: al recargar el tablero, las fichas vuelven a la salida.
+- Diagnóstico de la Fase 0:
+  - el mando muestra el tipo de conexión (candidato ICE: wifi directa, router o servidor externo),
+    los cortes y su motivo;
+  - el tablero registra los cambios de estado ICE y muestra las medidas de pantalla y casilla.
+- Los errores del servidor de emparejamiento no cierran una conexión ya abierta con el tablero.
+- Casillas y fichas se colocan en píxeles calculados en JavaScript y se recolocan al cambiar el espacio
+  (`ResizeObserver`). No usar `padding` en % dentro del tablero: se mide sobre el ancho del tablero, no de la ficha.
 - El mando avisa si la conexión directa no se completa en 10 s (posible red de invitados o router
   que aísla dispositivos).
 

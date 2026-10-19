@@ -53,3 +53,10 @@ Los resultados se apuntan en la sección «Resultados de la Fase 0» de [`BRIEF_
 - **El tablero no muestra código**: el servidor público de PeerJS (solo se usa para el emparejamiento
   inicial) puede no estar disponible. Recarga pasados unos minutos.
 - **Sin consola de errores en el Fire Stick**: el tablero muestra los últimos eventos abajo a la derecha.
+- **«Se ha perdido la conexión» o movimientos que van a ratos**: mira el diagnóstico.
+  - El móvil muestra debajo de la cruceta la conexión en uso («directa por la wifi», «a través del router»
+    o «servidor externo»), los cortes y el motivo del último.
+  - El tablero muestra en la lista el tipo de conexión de cada jugador y registra cada cambio de estado ICE.
+  - Lo esperable en casa es «directa por la wifi». «Servidor externo» indica que la conexión directa
+    no se consigue y los mensajes dan la vuelta por internet.
+- **Medidas del tablero**: debajo de «Módulos ES» aparecen el tamaño de pantalla que ve el navegador y el de cada casilla.

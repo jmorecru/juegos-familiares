@@ -25,22 +25,24 @@
     color: var(--tinta);
     font-family: 'Fredoka', system-ui, sans-serif;
     display: grid;
-    grid-template-columns: 1fr minmax(260px, 24vw);
+    /* minmax(0, …): la columna del tablero no crece con su contenido; si no, el tablero no encoge al reducirse la pantalla. */
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 24vw);
     overflow: hidden;
   }
-  #zona { display: grid; place-items: center; padding: 2vmin; min-height: 0; }
-  #tablero { position: relative; }
-  .casilla { position: absolute; width: var(--celda); height: var(--celda); }
+  #zona { display: grid; place-items: center; padding: 2vmin; min-height: 0; min-width: 0; overflow: hidden; }
+  #tablero { position: relative; outline: 4px solid var(--tinta); }
+  /* Posición y tamaño de casillas y fichas: en píxeles desde colocar(), no con calc(var()). */
+  .casilla { position: absolute; left: 0; top: 0; }
   .losa { background: var(--losa); outline: 1px solid var(--losa2); }
   .muro { background: var(--muro); border-radius: 3px; }
   .ficha {
     position: absolute; left: 0; top: 0;
-    width: var(--celda); height: var(--celda);
-    padding: 12%;
+    display: grid; place-items: center;
     transition: transform 160ms ease-out;
   }
   .ficha div {
-    width: 100%; height: 100%; border-radius: 50%;
+    /* Porcentajes del tamaño de la ficha (un padding en % se mediría sobre el ancho del tablero). */
+    width: 76%; height: 76%; border-radius: 50%;
     display: grid; place-items: center;
     font-weight: 600; font-size: calc(var(--celda) * 0.42);
     color: #fff; border: 3px solid rgba(255,255,255,.85);
@@ -65,7 +67,7 @@
   #log { font-size: .75rem; color: var(--tenue); margin-top: auto; min-height: 6em; }
   #log p { margin: 2px 0; }
   @media (max-aspect-ratio: 1/1) {
-    body { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+    body { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
     aside { flex-direction: row; flex-wrap: wrap; align-items: flex-start; }
     #log { display: none; }
   }
@@ -85,6 +87,7 @@
     <ul id="lista"></ul>
     <p class="ayuda" id="pantalla">Pantalla siempre encendida: comprobando…</p>
     <p class="ayuda" id="modulos">Módulos ES: no</p>
+    <p class="ayuda" id="medidas"></p>
     <div id="log"></div>
   </aside>
 
@@ -134,21 +137,34 @@ function ocupada(x, y, salvo) {
 
 /* ---------- tablero ---------- */
 const tablero = document.getElementById('tablero');
+const casillas = [];   // {el, x, y}
+let celda = 48;
+
+function colocar(el, x, y) {
+  el.style.width = el.style.height = celda + 'px';
+  el.style.transform = 'translate(' + x * celda + 'px, ' + y * celda + 'px)';
+}
 function dibujarTablero() {
   for (let y = 0; y < FILAS; y++) for (let x = 0; x < COLS; x++) {
-    const c = document.createElement('div');
-    c.className = 'casilla ' + (esMuro(x, y) ? 'muro' : 'losa');
-    c.style.transform = `translate(calc(var(--celda) * ${x}), calc(var(--celda) * ${y}))`;
-    tablero.appendChild(c);
+    const el = document.createElement('div');
+    el.className = 'casilla ' + (esMuro(x, y) ? 'muro' : 'losa');
+    tablero.appendChild(el);
+    casillas.push({ el, x, y });
   }
 }
 function ajustarTamano() {
   const zona = document.getElementById('zona');
   const w = zona.clientWidth * 0.96, h = zona.clientHeight * 0.96;
-  const celda = Math.floor(Math.min(w / COLS, h / FILAS));
+  const nueva = Math.max(8, Math.floor(Math.min(w / COLS, h / FILAS)));
+  document.getElementById('medidas').textContent =
+    'Pantalla ' + innerWidth + '×' + innerHeight + ' · casilla ' + nueva + ' px · escala ' + (devicePixelRatio || 1);
+  if (nueva === celda && casillas[0].el.style.width) return;
+  celda = nueva;
   document.documentElement.style.setProperty('--celda', celda + 'px');
   tablero.style.width = celda * COLS + 'px';
   tablero.style.height = celda * FILAS + 'px';
+  for (const c of casillas) colocar(c.el, c.x, c.y);
+  for (const j of jugadores.values()) if (j.ficha) colocar(j.ficha, j.x, j.y);
 }
 function pintarFicha(j) {
   if (!j.ficha) {
@@ -160,7 +176,7 @@ function pintarFicha(j) {
   const d = j.ficha.firstChild;
   d.style.background = j.color;
   d.textContent = (j.nombre || '?').charAt(0).toUpperCase();
-  j.ficha.style.transform = `translate(calc(var(--celda) * ${j.x}), calc(var(--celda) * ${j.y}))`;
+  colocar(j.ficha, j.x, j.y);
   j.ficha.classList.toggle('ausente', !conectado(j));
 }
 function pintarLista() {
@@ -171,7 +187,7 @@ function pintarLista() {
     li.innerHTML = '<span class="punto"></span><span class="nom"></span><span class="est"></span>';
     li.querySelector('.punto').style.background = j.color;
     li.querySelector('.nom').textContent = j.nombre;
-    li.querySelector('.est').textContent = conectado(j) ? 'conectado' : 'desconectado';
+    li.querySelector('.est').textContent = conectado(j) ? (j.via || 'conectado') : 'desconectado';
     ul.appendChild(li);
   }
 }
@@ -197,6 +213,12 @@ function abrirSala(codigo, intentos = 0) {
   });
 
   peer.on('connection', conn => {
+    // Diagnóstico de la Fase 0: registra cada cambio de estado de la conexión directa.
+    const pc = conn.peerConnection;
+    if (pc) pc.addEventListener('iceconnectionstatechange', () => {
+      const j = jugadores.get(conn.jugadorId);
+      log('ICE ' + (j ? j.nombre : 'nuevo') + ': ' + pc.iceConnectionState);
+    });
     conn.on('data', msg => procesar(conn, msg));
     conn.on('close', () => perdida(conn));
     conn.on('error', () => perdida(conn));
@@ -243,6 +265,11 @@ function procesar(conn, msg) {
       log(nombre + ' se une');
     }
     conn.jugadorId = id;
+    j.via = null;
+    setTimeout(() => tipoConexion(conn.peerConnection).then(t => {
+      if (j.conn !== conn) return;
+      j.via = t; log(j.nombre + ': conexión ' + t); pintarLista();
+    }), 1500);
     conn.send({ tipo: 'bienvenida', color: j.color, nombre: j.nombre });
     enviarEstado();
     refrescar();
@@ -264,7 +291,27 @@ function procesar(conn, msg) {
 
 function perdida(conn) {
   const j = jugadores.get(conn.jugadorId);
-  if (j && j.conn === conn) { log(j.nombre + ' se ha desconectado'); refrescar(); }
+  if (j && j.conn === conn) {
+    const ice = conn.peerConnection ? conn.peerConnection.iceConnectionState : 'sin datos';
+    log(j.nombre + ' se ha desconectado (ICE ' + ice + ')');
+    refrescar();
+  }
+}
+
+// Tipo de candidato ICE en uso: host = directa por la wifi, srflx = a través del router, relay = servidor externo.
+async function tipoConexion(pc) {
+  if (!pc || !pc.getStats) return 'desconocida';
+  try {
+    const stats = await pc.getStats();
+    let par = null;
+    stats.forEach(r => { if (r.type === 'transport' && r.selectedCandidatePairId) par = stats.get(r.selectedCandidatePairId); });
+    if (!par) stats.forEach(r => { if (r.type === 'candidate-pair' && (r.selected || r.nominated) && r.state === 'succeeded') par = r; });
+    if (!par) return 'desconocida';
+    const tipos = [stats.get(par.localCandidateId), stats.get(par.remoteCandidateId)].map(c => c && c.candidateType);
+    if (tipos.includes('relay')) return 'servidor externo';
+    if (tipos[0] === 'host' && tipos[1] === 'host') return 'directa por la wifi';
+    return 'a través del router (' + tipos.join('/') + ')';
+  } catch (e) { return 'desconocida'; }
 }
 
 function enviarEstado() {
@@ -293,6 +340,8 @@ document.addEventListener('pointerdown', pedirPantalla, { once: true });
 dibujarTablero();
 ajustarTamano();
 window.addEventListener('resize', ajustarTamano);
+// También cuando cambia el espacio sin que cambie la ventana (por ejemplo, al aparecer el QR).
+if (window.ResizeObserver) new ResizeObserver(ajustarTamano).observe(document.getElementById('zona'));
 pedirPantalla();
 abrirSala(leer('sala') || nuevoCodigo());
 </script>
