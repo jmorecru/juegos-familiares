@@ -90,6 +90,8 @@ const PREFIJO = 'mazmorra-familia-';
 
 let peer = null, conn = null, sala = '', nombre = '';
 let reintento = null, vigilante = null, latencia = null, pos = null, rechazado = false;
+// true cuando el tablero avisa de que este jugador se ha abierto en otra pestaña o dispositivo: deja de reconectar.
+let sustituido = false;
 // Diagnóstico de la Fase 0: por dónde va la conexión y cuántas veces se ha cortado.
 let via = null, cortes = 0, ultimoCorte = '', ultimoPong = 0;
 
@@ -116,14 +118,25 @@ document.getElementById('entrada').addEventListener('submit', e => {
   conectar();
 });
 
+// Al recargar esta misma pestaña (por ejemplo, con el aviso de versión nueva) vuelve a entrar solo.
+// Va en sessionStorage, que es de la pestaña: al abrir el QR en otra pestaña se sigue pidiendo el nombre.
+function salaDeEstaPestana() { try { return sessionStorage.getItem('mazmorra.salaActiva'); } catch (e) { return null; } }
+function marcarSalaDeEstaPestana(s) { try { sessionStorage.setItem('mazmorra.salaActiva', s); } catch (e) {} }
+if (salaDeEstaPestana() && document.getElementById('nombre').value) {
+  document.getElementById('codigo').value = salaDeEstaPestana();
+  const form = document.getElementById('entrada');
+  if (form.requestSubmit) form.requestSubmit(); else form.dispatchEvent(new Event('submit', { cancelable: true }));
+}
+
 /* ---------- red ---------- */
 function conectar() {
   clearTimeout(reintento);
-  if (rechazado) return;
+  if (rechazado || sustituido) return;
   estado('Conectando con la sala ' + sala + '…');
   if (!peer || peer.destroyed) {
     peer = new Peer({ debug: 1 });
-    peer.on('open', abrirConexion);
+    // 'open' se repite cada vez que vuelve el servidor de emparejamiento: no tocar una conexión que funciona.
+    peer.on('open', () => { if (!(conn && conn.open)) abrirConexion(); });
     peer.on('disconnected', () => { setTimeout(() => { if (!peer.destroyed) peer.reconnect(); }, 1500); });
     peer.on('error', err => {
       // Los errores del servidor de emparejamiento no afectan a una conexión ya abierta con el tablero.
@@ -138,9 +151,17 @@ function conectar() {
 }
 
 function abrirConexion() {
-  if (conn) { try { conn.close(); } catch (e) {} }
+  // Se suelta antes de cerrarla: PeerJS emite 'close' en el acto y, si siguiera siendo la actual,
+  // contaría como corte y programaría otro reintento que volvería a cerrar la nueva (bucle de cortes).
+  const vieja = conn;
+  conn = null;
+  if (vieja) { try { vieja.close(); } catch (e) {} }
   const esta = peer.connect(PREFIJO + sala, { reliable: true });
   conn = esta;
+  // PeerJS borra peerConnection al cerrar: se guarda el último estado ICE para el diagnóstico.
+  esta.ultimoIce = 'nuevo';
+  const pc = esta.peerConnection;
+  if (pc) pc.addEventListener('iceconnectionstatechange', () => { esta.ultimoIce = pc.iceConnectionState; });
   clearTimeout(vigilante);
   vigilante = setTimeout(() => {
     if (!esta.open) {
@@ -150,15 +171,18 @@ function abrirConexion() {
   }, 10000);
   esta.on('open', () => {
     clearTimeout(vigilante);
+    ultimoPong = performance.now();   // el plazo de "sin respuesta" cuenta desde que se abre
     esta.send({ tipo: 'hola', id: jugadorId, nombre });
+    esta.holaEnviado = performance.now();
     setTimeout(() => tipoConexion(esta.peerConnection).then(t => { if (esta === conn) { via = t; pintarDatos(); } }), 1500);
   });
-  esta.on('data', recibir);
+  // Solo cuenta lo que llega por la conexión actual, no por una anterior que aún no se haya cerrado del todo.
+  esta.on('data', msg => { if (esta === conn) recibir(msg); });
   esta.on('close', () => { if (esta === conn) perdida('cerrada, ICE ' + estadoIce(esta)); });
   esta.on('error', err => { if (esta === conn) perdida('error ' + (err && err.type) + ', ICE ' + estadoIce(esta)); });
 }
 
-function estadoIce(c) { return c.peerConnection ? c.peerConnection.iceConnectionState : 'sin datos'; }
+function estadoIce(c) { return c.peerConnection ? c.peerConnection.iceConnectionState : (c.ultimoIce || 'sin datos'); }
 
 // Tipo de candidato ICE en uso: host = directa por la wifi, srflx = a través del router, relay = servidor externo.
 async function tipoConexion(pc) {
@@ -177,7 +201,7 @@ async function tipoConexion(pc) {
 }
 
 function perdida(motivo) {
-  if (rechazado) return;
+  if (rechazado || sustituido) return;
   cortes++;
   ultimoCorte = motivo;
   via = null;
@@ -188,19 +212,21 @@ function perdida(motivo) {
 
 function programarReintento() {
   clearTimeout(reintento);
-  reintento = setTimeout(conectar, 2500);
+  reintento = setTimeout(() => { if (!(conn && conn.open)) conectar(); }, 2500);
 }
 
 function recibir(msg) {
   if (!msg || typeof msg !== 'object') return;
   switch (msg.tipo) {
     case 'bienvenida':
+      if (conn) conn.bienvenida = true;
       document.documentElement.style.setProperty('--mio', msg.color);
       document.getElementById('ficha').textContent = msg.nombre.charAt(0).toUpperCase();
       document.getElementById('entrada').classList.add('oculto');
       document.getElementById('cruceta').classList.remove('oculto');
       document.getElementById('datos').classList.remove('oculto');
       estado('Conectado como ' + msg.nombre + '.');
+      marcarSalaDeEstaPestana(sala);
       break;
     case 'estado':
       pos = msg; pintarDatos();
@@ -215,6 +241,12 @@ function recibir(msg) {
     case 'rechazado':
       rechazado = true;
       estado(msg.motivo || 'No se puede entrar en la sala.');
+      break;
+    case 'sustituido':
+      sustituido = true;
+      clearTimeout(reintento);
+      document.getElementById('cruceta').classList.add('oculto');
+      estado('Este jugador se ha abierto en otra pestaña o en otro móvil. Para usarlo aquí, recarga esta página.');
       break;
     case 'pong':
       latencia = Math.round(performance.now() - msg.t);
@@ -240,7 +272,26 @@ setInterval(pintarDatos, 1000);
 
 function enviar(m) { if (conn && conn.open) conn.send(m); }
 
-setInterval(() => enviar({ tipo: 'ping', t: performance.now() }), 2000);
+// Si el tablero deja de contestar (por ejemplo, porque la tele se ha suspendido), la conexión puede seguir
+// pareciendo abierta sin funcionar. Tras 8 s sin respuesta se da por perdida y se reconecta.
+// Solo con la página visible: en segundo plano el navegador frena los temporizadores.
+const SIN_RESPUESTA_MS = 8000;
+setInterval(() => {
+  if (!(conn && conn.open)) return;
+  if (document.visibilityState === 'visible' && performance.now() - ultimoPong > SIN_RESPUESTA_MS) {
+    const muerta = conn;
+    conn = null;
+    try { muerta.close(); } catch (e) {}
+    perdida('sin respuesta del tablero');
+    return;
+  }
+  // Si el saludo se perdió, el tablero contesta los pings pero no reconoce al jugador: se repite.
+  if (!conn.bienvenida && conn.holaEnviado && performance.now() - conn.holaEnviado > 4000) {
+    enviar({ tipo: 'hola', id: jugadorId, nombre });
+    conn.holaEnviado = performance.now();
+  }
+  enviar({ tipo: 'ping', t: performance.now() });
+}, 2000);
 
 /* ---------- controles ---------- */
 document.querySelectorAll('#cruceta button').forEach(b => {
@@ -257,7 +308,10 @@ document.addEventListener('keydown', e => {
 
 // Al volver de bloquear el móvil, reconecta si hace falta.
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && sala && !rechazado && !(conn && conn.open)) conectar();
+  if (document.visibilityState !== 'visible') return;
+  // Al desbloquear se da un margen: el último pong es de antes de bloquear y aún no ha habido ping nuevo.
+  ultimoPong = performance.now();
+  if (sala && !rechazado && !(conn && conn.open)) conectar();
 });
 </script>
 <script src="../version.js"></script>

@@ -81,6 +81,7 @@ Tipografías de Google Fonts: Fredoka (interfaz) y Grenze Gotisch (título).
 | tablero → mando | `bloqueado`  | –                         | Movimiento no válido                             |
 | tablero → mando | `rechazado`  | `motivo`                  | Sala llena (máx. 5)                              |
 | tablero → mando | `pong`       | `t`                       | Eco del ping                                     |
+| tablero → mando | `sustituido` | –                         | Ese `id` se ha conectado desde otra pestaña o dispositivo; este mando deja de reconectar |
 
 ### Comportamientos ya resueltos
 - El tablero guarda su código de sala en localStorage: al recargar, conserva el código y los móviles
@@ -97,6 +98,18 @@ Tipografías de Google Fonts: Fredoka (interfaz) y Grenze Gotisch (título).
   (`ResizeObserver`). No usar `padding` en % dentro del tablero: se mide sobre el ancho del tablero, no de la ficha.
 - El mando avisa si la conexión directa no se completa en 10 s (posible red de invitados o router
   que aísla dispositivos).
+- Solo cuenta la conexión actual de cada jugador. El mando ignora los mensajes de conexiones anteriores,
+  y el tablero ignora sus movimientos.
+- Si llega un `hola` con un `id` cuya conexión anterior sigue abierta, el tablero envía `sustituido` a la
+  anterior antes de cerrarla, para que dos pestañas con la misma identidad no se quiten el sitio sin parar.
+- El mando suelta la conexión antes de cerrarla. PeerJS emite `close` en el acto, y si siguiera siendo la
+  actual contaría como corte y programaría un reintento: era el bucle de cortes visto en iPhone.
+  Al reaparecer el servidor de emparejamiento (`open`), no se toca una conexión abierta.
+- Si el tablero no contesta los pings en 8 s (página visible), el mando da la conexión por perdida y reconecta.
+  Cubre las conexiones muertas que parecen abiertas, por ejemplo al suspenderse la tele.
+  Si tras abrir no llega `bienvenida` en 4 s, repite el `hola`.
+- Al recargar la misma pestaña, el mando vuelve a entrar solo: la sala va en sessionStorage.
+  En una pestaña nueva se sigue pidiendo el nombre.
 
 ### Resultados de la Fase 0
 
@@ -106,15 +119,16 @@ En curso. Lista completa en el `README.md` de esta carpeta.
 |------------------------------------------------|-------------------------------------------|-------------------------------|
 | Un móvil: movimiento, casillas y ficha         | OK (2026-10-19, v7)                       |                               |
 | Conexión y cortes                              | Directa por la wifi, 0 cortes (v7)        |                               |
+| Dos mandos a la vez (iPhone + tablet)          | OK tras corregir los cortes (v8)          |                               |
 | Tres móviles a la vez, movimiento fluido       |                                           |                               |
-| Latencia que marcan los móviles (ms)           |                                           |                               |
-| Reconexión al bloquear y desbloquear un móvil  |                                           |                               |
+| Latencia que marcan los móviles (ms)           | 10–200, normalmente < 100                 |                               |
+| Reconexión al bloquear y desbloquear un móvil  | OK (iPhone, no se perdió la conexión)     |                               |
 | Reconexión al recargar el tablero              |                                           |                               |
-| Pantalla encendida 15 minutos                  |                                           |                               |
+| Pantalla encendida 15 minutos                  | No: la tele entró en suspensión           |                               |
 | «Módulos ES: sí»                               |                                           |                               |
 | Se ve bien desde la mesa / el sofá             | Tablero, casillas e indicador de jugador bien |                           |
 
-Móviles usados (modelo y navegador):
+Mandos usados (modelo y navegador): iPhone con Safari; tablet como mando (navegador por anotar).
 Conclusión (Fire Stick, tablet o ambos):
 Incidencias (Fire Stick, 2026-10-19):
 - Hasta la v5, las fichas se dibujaban desplazadas por un `padding` en % (medido sobre el tablero). Corregido.
@@ -123,6 +137,16 @@ Incidencias (Fire Stick, 2026-10-19):
   emparejamiento de PeerJS. Ahora lo ignora si la conexión está abierta. No está demostrado: confirmarlo con
   la prueba de tres móviles.
 - WebRTC directo funciona en la wifi de casa: de momento no hace falta el plan B del servidor local.
+- Con dos mandos y la v8, tras mucho rato, el iPhone mostraba cortes continuos («cerrada, ICE sin datos»),
+  pero se podía mover. Causa: el bucle de cierre y reintento del mando (ver «Comportamientos ya resueltos»).
+  Recargar lo cortaba. Corregido en la v9 y reproducido en Chrome.
+- La tele entró en suspensión. Al volver, el tablero seguía abierto, pero:
+  - el iPhone seguía con el bucle de cortes;
+  - la tablet parecía conectada y no movía (conexión muerta sin cerrar).
+
+  Corregido en la v9 con el plazo de 8 s sin respuesta y la repetición del `hola`; probado en Chrome
+  con un tablero que deja de contestar 12 s. Falta revisar el salvapantallas del Fire TV, que no
+  debería saltar con el tablero abierto.
 
 ## 4. Restricciones técnicas
 

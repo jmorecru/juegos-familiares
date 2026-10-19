@@ -59,4 +59,10 @@ Los resultados se apuntan en la sección «Resultados de la Fase 0» de [`BRIEF_
   - El tablero muestra en la lista el tipo de conexión de cada jugador y registra cada cambio de estado ICE.
   - Lo esperable en casa es «directa por la wifi». «Servidor externo» indica que la conexión directa
     no se consigue y los mensajes dan la vuelta por internet.
+- **«Este jugador se ha abierto en otra pestaña o en otro móvil»**: hay dos mandos con la misma identidad,
+  por ejemplo dos pestañas del mismo navegador. Cierra la que sobra; para usar esta, recárgala.
+- **La tele se suspende**: al volver, los mandos detectan en unos 8 s que el tablero no contestaba y vuelven a
+  entrar solos. Para que no pase, desactiva el salvapantallas del Fire TV o pon su hora de inicio en «Nunca»
+  (Configuración → Pantalla y sonido → Salvapantallas).
+- **Recargar el mando**: vuelve a entrar solo en la sala. En una pestaña nueva pide otra vez el nombre.
 - **Medidas del tablero**: debajo de «Módulos ES» aparecen el tamaño de pantalla que ve el navegador y el de cada casilla.

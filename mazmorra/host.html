@@ -252,9 +252,22 @@ function procesar(conn, msg) {
     const nombre = String(msg.nombre || 'Jugador').slice(0, 16);
     let j = jugadores.get(id);
     if (j) {
-      if (j.conn && j.conn !== conn) { try { j.conn.close(); } catch (e) {} }
+      const vieja = j.conn;
+      if (vieja && vieja !== conn) {
+        if (vieja.open) {
+          // Misma identidad con la conexión anterior aún viva: otra pestaña u otro dispositivo.
+          // Se le avisa para que deje de reconectar; si no, las dos se quitarían el sitio sin parar.
+          try { vieja.send({ tipo: 'sustituido' }); } catch (e) {}
+          setTimeout(() => { try { vieja.close(); } catch (e) {} }, 500);
+          log(nombre + ': abierto en otra pestaña o móvil, se cierra el anterior');
+        } else {
+          try { vieja.close(); } catch (e) {}
+          log(nombre + ' ha vuelto');
+        }
+      } else {
+        log(nombre + ' ha vuelto');
+      }
       j.conn = conn; j.nombre = nombre;
-      log(nombre + ' ha vuelto');
     } else {
       if (jugadores.size >= MAX_JUGADORES) { conn.send({ tipo: 'rechazado', motivo: 'La sala está llena.' }); return; }
       const usados = new Set([...jugadores.values()].map(p => p.color));
@@ -277,7 +290,7 @@ function procesar(conn, msg) {
   }
 
   const j = jugadores.get(conn.jugadorId);
-  if (!j) return;
+  if (!j || j.conn !== conn) return;   // solo manda la conexión actual del jugador
 
   if (msg.tipo === 'mover') {
     let dx = Math.sign(msg.dx | 0), dy = Math.sign(msg.dy | 0);

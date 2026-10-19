@@ -22,8 +22,16 @@
   - Corregido y comprobado en Chrome: las fichas caen en su casilla y el tablero se reajusta al estrecharse la pantalla.
   - Añadido el diagnóstico de conexión para averiguar el motivo de los cortes.
 - Con la v7 en el Fire Stick y un móvil: tablero, casillas e indicador de jugador bien; conexión directa por la wifi
-  y 0 cortes. Resultados en `mazmorra/BRIEF_mazmorra.md`. Faltan tres móviles, latencia, reconexiones, 15 minutos
-  de pantalla y la tablet.
+  y 0 cortes. Resultados en `mazmorra/BRIEF_mazmorra.md`.
+- Con dos mandos (iPhone con Safari y tablet) han aparecido:
+  - un bucle de cortes en el mando;
+  - conexiones muertas tras suspenderse la tele.
+
+  Corregido en la v9 y probado en Chrome con tres casos: dos pestañas con la misma identidad, reapertura
+  forzada y tablero que deja de contestar 12 s. Falta confirmarlo en casa.
+- Bloquear y desbloquear el iPhone no corta la conexión. Latencia entre 10 y 200 ms, normalmente por debajo de 100.
+- Las pruebas de red en Chrome sin interfaz necesitan tiempo real, no `--virtual-time-budget`, que impide
+  que PeerJS conecte. El resultado se lee haciendo que la página pida `/resultado?…` al servidor local.
 - La portada y la de la mazmorra se ven bien a 390 px de ancho (móvil).
 - Indicador de versión: el hook escribe el número y la fecha en cada commit (comprobado en local). Con un servidor
   que simula una versión publicada más nueva, la página muestra el aviso amarillo para recargar.
