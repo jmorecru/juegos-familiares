@@ -185,6 +185,9 @@ entrar; el Señor Oscuro ve el mapa completo en su dispositivo y activa monstruo
 **Fase 4 – Señor Oscuro automático**: monstruos con A* y reglas sencillas, con niveles de dificultad.
 
 **Fase 5 – Misiones y persistencia**: misiones en JSON, guardar y reanudar partidas.
+Cada aventura elige su mapa (`datos/mapas/*.json`). El mapa principal será un tablero grande, de unas 26×19
+casillas, con habitaciones, pasillos y sala central, con diseño propio dibujado por código. No se usa el tablero
+ni el arte de HeroQuest. Con ese tamaño, en el Fire Stick hará falta zoom sobre la zona activa o la tablet.
 
 ## 6. Preguntas abiertas
 

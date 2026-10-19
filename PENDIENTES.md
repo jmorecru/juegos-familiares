@@ -8,6 +8,16 @@
 - **Mazmorra – Fase 1: reorganizar en módulos ES** (plan propuesto, pendiente de confirmar tras la Fase 0).
   Por qué: separar red, motor de reglas y dibujo para poder probar las reglas solas y reutilizarlas con la IA.
   Incluye poner el prefijo `mazmorra.` a las claves de localStorage, que ahora comparte con los demás juegos.
+- **Mazmorra – Tableros por aventura** (a futuro; encaja con las Fases 1 y 5). Por qué: cada aventura tiene
+  su mapa, y quieres un tablero grande como el de los juegos de mazmorras clásicos.
+  - **Formato**: un JSON por mapa en `mazmorra/datos/mapas/` (casillas, habitaciones, puertas, salidas);
+    cada aventura indica el suyo.
+  - **Primer mapa**: unas 26×19 casillas con habitaciones, pasillos y sala central, con distribución y nombres propios.
+  - **Dibujado por código**, sin imágenes.
+  - **No usar el tablero ni el arte de HeroQuest**, tampoco capturas como la de Reddit: está protegido, el
+    repositorio es público y el brief exige diseño original.
+  - **Tamaño en pantalla**: con 26×19 casillas, en el Fire Stick cada una mediría unos 25 px. Hay que decidir
+    entre zoom sobre la zona activa, mostrar solo lo descubierto o la tablet como tablero (depende de la Fase 0).
 
 ## Ya comprobado
 - La identidad de git del proyecto es el noreply de GitHub (se aplica sola a todo lo que cuelga de `C:\personal`).
