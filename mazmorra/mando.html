@@ -194,9 +194,10 @@ async function tipoConexion(pc) {
     if (!par) stats.forEach(r => { if (r.type === 'candidate-pair' && (r.selected || r.nominated) && r.state === 'succeeded') par = r; });
     if (!par) return 'desconocida';
     const tipos = [stats.get(par.localCandidateId), stats.get(par.remoteCandidateId)].map(c => c && c.candidateType);
+    // prflx: la dirección se descubrió al recibir paquetes (habitual con iPhone, que oculta las locales); sigue siendo la wifi.
     if (tipos.includes('relay')) return 'servidor externo';
-    if (tipos[0] === 'host' && tipos[1] === 'host') return 'directa por la wifi';
-    return 'a través del router (' + tipos.join('/') + ')';
+    if (tipos.includes('srflx')) return 'a través del router (' + tipos.join('/') + ')';
+    return 'directa por la wifi' + (tipos.includes('prflx') ? ' (' + tipos.join('/') + ')' : '');
   } catch (e) { return 'desconocida'; }
 }
 
