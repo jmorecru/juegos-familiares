@@ -37,10 +37,15 @@ Todas las páginas muestran abajo a la izquierda la versión cargada, por ejempl
 - La página vuelve a pedir `version.js` sin caché al abrirse, cada 2 minutos y al volver a la pestaña.
   Si hay una versión publicada más nueva, el indicador se pone amarillo y pide recargar; al tocarlo, recarga.
 - La línea `const VERSION = …` de `version.js` la escribe `.githooks/pre-commit` en cada commit. No se edita a mano.
+- El hook también pone el número en cada página que carga el indicador (`version.js?v=N`). GitHub Pages
+  deja guardar los ficheros 10 minutos (`Cache-Control: max-age=600`) y, al recargar, el navegador puede
+  reutilizar la copia vieja de `version.js` aunque la página sea nueva: con `?v=N` cada versión es una dirección distinta.
+  Al tocar el aviso, la página se abre con `?v=N` por el mismo motivo.
+- El hook solo mete en el commit esas líneas, no otros cambios sin preparar de esos ficheros.
 - **En cada clon nuevo hay que activar el hook una vez**: `git config core.hooksPath .githooks`.
   Sin esto, los commits no actualizan la versión.
 - Para cargar el indicador en una página nueva: `<script src="version.js"></script>` (o `../version.js`
-  desde la carpeta de un juego) justo antes de `</body>`.
+  desde la carpeta de un juego) justo antes de `</body>`. El `?v=N` lo añade el hook en el siguiente commit.
 
 ## Ponerlo en marcha
 

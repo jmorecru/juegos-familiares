@@ -1,6 +1,6 @@
 // Indicador de versión común a todas las páginas.
 // La línea VERSION la reescribe .githooks/pre-commit en cada commit: no editarla a mano.
-const VERSION = { numero: 12, fecha: '2026-10-20 09:57' };
+const VERSION = { numero: 13, fecha: '2026-10-20 10:02' };
 
 (function () {
   // Dirección de este mismo fichero, para volver a pedirlo sin caché y comparar.
@@ -19,7 +19,12 @@ const VERSION = { numero: 12, fecha: '2026-10-20 09:57' };
     insignia.style.fontSize = '14px';
     insignia.style.pointerEvents = 'auto';
     insignia.style.cursor = 'pointer';
-    insignia.onclick = () => location.reload();
+    // Se abre la página con ?v= en la dirección para que el navegador no aproveche una copia guardada.
+    insignia.onclick = () => {
+      const url = new URL(location.href);
+      url.searchParams.set('v', nueva);
+      location.replace(url.href);
+    };
   }
 
   async function comprobar() {

@@ -1,8 +1,26 @@
 #!/bin/sh
-# Escribe en version.js el número de versión (commits + 1) y la fecha, y lo añade al commit.
+# En cada commit:
+#  - escribe en version.js el número de versión (commits + 1) y la fecha;
+#  - pone ese número en las páginas que cargan version.js (version.js?v=N), para que el navegador
+#    no use una copia guardada (GitHub Pages permite guardarla 10 minutos).
+# Cambia el fichero y también lo preparado para el commit, sin añadir otros cambios no preparados.
 # Se activa una vez por clon con: git config core.hooksPath .githooks
-raiz=$(git rev-parse --show-toplevel)
+cd "$(git rev-parse --show-toplevel)" || exit 1
 numero=$(( $(git rev-list --count HEAD 2>/dev/null || echo 0) + 1 ))
 fecha=$(date '+%Y-%m-%d %H:%M')
-sed -i "s/^const VERSION = .*/const VERSION = { numero: $numero, fecha: '$fecha' };/" "$raiz/version.js"
-git add "$raiz/version.js"
+
+# $1 fichero, $2 expresión de sed (-E)
+actualizar() {
+  sed -i -E "$2" "$1"
+  entrada=$(git ls-files -s -- "$1")
+  [ -n "$entrada" ] || { git add -- "$1"; return; }
+  modo=${entrada%% *}
+  blob=$(git show ":$1" | sed -E "$2" | git hash-object -w --stdin)
+  git update-index --cacheinfo "$modo,$blob,$1"
+}
+
+actualizar version.js "s/^const VERSION = .*/const VERSION = { numero: $numero, fecha: '$fecha' };/"
+for f in $(git ls-files '*.html'); do
+  grep -q 'version\.js' "$f" && actualizar "$f" "s#(version\.js)(\?v=[0-9]+)?\"#\1?v=$numero\"#"
+done
+exit 0
