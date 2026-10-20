@@ -1,6 +1,6 @@
 // Indicador de versión común a todas las páginas.
 // La línea VERSION la reescribe .githooks/pre-commit en cada commit: no editarla a mano.
-const VERSION = { numero: 16, fecha: '2026-10-20 11:05' };
+const VERSION = { numero: 17, fecha: '2026-10-20 11:35' };
 
 (function () {
   // Dirección de este mismo fichero, para volver a pedirlo sin caché y comparar.

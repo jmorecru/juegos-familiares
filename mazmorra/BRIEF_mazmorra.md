@@ -57,7 +57,7 @@ Antes de escribir código, lee el brief completo y propón un plan para la fase 
 
 ## 3. Estado actual: prueba de humo
 
-Objetivo: validar la infraestructura en casa antes de programar juego. **Pendiente de probar.**
+Objetivo: validar la infraestructura en casa antes de programar juego. **Probada y cerrada el 2026-10-20 (v16).**
 
 | Fichero      | Función                                                                       |
 |--------------|-------------------------------------------------------------------------------|
@@ -123,7 +123,7 @@ Tipografías de Google Fonts: Fredoka (interfaz) y Grenze Gotisch (título).
 
 ### Resultados de la Fase 0
 
-En curso. Lista completa en el `README.md` de esta carpeta.
+Cerrada el 2026-10-20 con la v16. Lista completa en el `README.md` de esta carpeta.
 
 | Comprobación                                   | Fire Stick (Silk)                         | Tablet ( modelo / navegador ) |
 |------------------------------------------------|-------------------------------------------|-------------------------------|
@@ -136,6 +136,7 @@ En curso. Lista completa en el `README.md` de esta carpeta.
 | Reconexión al recargar el tablero              |                                           |                               |
 | Pantalla encendida 15 minutos                  | Sí: «Pantalla siempre encendida: sí» y no se suspendió (v13, 3 mandos) |  |
 | Tres mandos a la vez                           | OK (iPhone, Fire HD 8, tablet Android); un corte simultáneo de todos, recuperado solo (v13) | |
+| 15 min sin tocar los mandos                    | OK (v16): ninguno se bloquea ni se desconecta | |
 | «Módulos ES: sí»                               | Sí (v13)                                  |                               |
 | Medidas                                        | 960×540 CSS, escala 4 (Fire TV Stick 4K), casilla 56 px |                 |
 | Se ve bien desde la mesa / el sofá             | Tablero, casillas e indicador de jugador bien |                           |
@@ -144,7 +145,8 @@ Mandos usados (modelo y navegador):
 - iPhone con Safari: conexión `host/prflx`, que sigue siendo directa por la wifi.
 - Fire HD 8 con Silk.
 - Tablet Android: 0 cortes en toda la prueba.
-Conclusión (Fire Stick, tablet o ambos):
+Conclusión: **el Fire TV Stick 4K vale como tablero**, con conexión directa por la wifi; el plan B no hace falta.
+La tablet como tablero queda como comparación opcional, para jugar sin tele.
 Incidencias (Fire Stick, 2026-10-19):
 - Hasta la v5, las fichas se dibujaban desplazadas por un `padding` en % (medido sobre el tablero). Corregido.
 - Hasta la v5, había cortes frecuentes («Se ha perdido la conexión»). Con la v7, 0 cortes y conexión directa por la wifi.
@@ -185,6 +187,13 @@ Incidencias (Fire Stick, 2026-10-20, v13, iPhone + Fire HD 8 + tablet Android):
   Para la partida real es un problema, porque cada jugador pasa minutos sin tocar su móvil. Por eso, desde
   la v16 el mando pide mantener la pantalla encendida. Además, el registro no se podía desplazar y no
   había nada que indicara que se abre pulsando: desde la v16 hay un botón «Ver registro completo».
+
+- Con la v16 y 15 minutos sin tocar los mandos: los tres aguantan sin bloquearse y sin desconectarse.
+  En la prueba anterior (v15), al despertarlas, las dos tablets volvieron a entrar solas; el iPhone se recargó
+  a mano, así que en él no se comprobó la vuelta automática.
+- En la actualización a la v16, el registro mostró para un jugador «se une», un segundo después «se ha
+  desconectado» y luego «ha vuelto». Causa probable: el mando con la versión anterior llegó a reconectar justo
+  antes de recargarse a la v16. Si se ve en mitad de una partida sin recargar, investigarlo.
 
 ## 4. Restricciones técnicas
 
