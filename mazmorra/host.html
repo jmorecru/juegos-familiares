@@ -64,8 +64,15 @@
   li { display: flex; align-items: center; gap: 10px; }
   .punto { width: 16px; height: 16px; border-radius: 50%; flex: none; }
   li .est { margin-left: auto; color: var(--tenue); font-size: .85rem; }
-  #log { font-size: .75rem; color: var(--tenue); margin-top: auto; min-height: 6em; }
-  #log p { margin: 2px 0; }
+  #log { font-size: .75rem; color: var(--tenue); margin-top: auto; min-height: 6em; cursor: pointer; }
+  #log p, #logCompleto p { margin: 2px 0; }
+  /* Registro completo: se abre al pulsar sobre el registro y se cierra con otro clic. */
+  #registro {
+    position: fixed; inset: 0; z-index: 50; overflow-y: auto; cursor: pointer;
+    background: rgba(28, 33, 64, .97); padding: 24px 32px; font-size: .9rem;
+  }
+  #registro h2 { margin: 0 0 12px; font-size: 1.3rem; }
+  .oculto { display: none !important; }
   /* Pantallas bajas (Silk en el Fire Stick: 960×540 o menos si muestra su barra). Todo tiene que caber
      sin desplazar la columna, así que los tamaños van en vh (proporcionales a la altura disponible). */
   @media (max-height: 640px) and (min-aspect-ratio: 1/1) {
@@ -105,8 +112,13 @@
     <p class="ayuda" id="pantalla">Pantalla siempre encendida: comprobando…</p>
     <p class="ayuda" id="modulos">Módulos ES: no</p>
     <p class="ayuda" id="medidas"></p>
-    <div id="log"></div>
+    <div id="log" title="Pulsa para ver el registro completo"></div>
   </aside>
+  <div id="registro" class="oculto">
+    <h2>Registro de eventos</h2>
+    <p class="ayuda">Los 50 más recientes, el último arriba. Pulsa en cualquier sitio para cerrar.</p>
+    <div id="logCompleto"></div>
+  </div>
 
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -131,13 +143,22 @@ const jugadores = new Map();   // id -> {nombre, color, x, y, conn, ficha}
 let peer = null;
 
 /* ---------- utilidades ---------- */
+const registro = [];   // últimos eventos, el más reciente primero
 function log(txt) {
-  const el = document.getElementById('log');
-  const p = document.createElement('p');
-  p.textContent = new Date().toLocaleTimeString() + '  ' + txt;
-  el.prepend(p);
-  while (el.children.length > 8) el.lastChild.remove();
+  registro.unshift(new Date().toLocaleTimeString() + '  ' + txt);
+  if (registro.length > 50) registro.length = 50;
+  for (const id of ['log', 'logCompleto']) {
+    const el = document.getElementById(id);
+    el.textContent = '';
+    for (const t of registro) {
+      const p = document.createElement('p');
+      p.textContent = t;
+      el.appendChild(p);
+    }
+  }
 }
+document.getElementById('log').addEventListener('click', () => document.getElementById('registro').classList.remove('oculto'));
+document.getElementById('registro').addEventListener('click', () => document.getElementById('registro').classList.add('oculto'));
 function guardar(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 function leer(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function nuevoCodigo() {
@@ -230,6 +251,7 @@ function abrirSala(codigo, intentos = 0) {
   });
 
   peer.on('connection', conn => {
+    conn.ultimoMensaje = performance.now();
     // Diagnóstico de la Fase 0: registra cada cambio de estado de la conexión directa.
     const pc = conn.peerConnection;
     if (pc) pc.addEventListener('iceconnectionstatechange', () => {
@@ -261,6 +283,7 @@ function abrirSala(codigo, intentos = 0) {
 
 function procesar(conn, msg) {
   if (!msg || typeof msg !== 'object') return;
+  conn.ultimoMensaje = performance.now();
 
   if (msg.tipo === 'ping') { conn.send({ tipo: 'pong', t: msg.t }); return; }
 
@@ -272,11 +295,12 @@ function procesar(conn, msg) {
       const vieja = j.conn;
       if (vieja && vieja !== conn) {
         if (vieja.open) {
-          // Misma identidad con la conexión anterior aún viva: otra pestaña u otro dispositivo.
-          // Se le avisa para que deje de reconectar; si no, las dos se quitarían el sitio sin parar.
+          // Misma identidad con la conexión anterior aparentemente abierta. Puede ser otra pestaña u otro
+          // dispositivo, o la misma tablet que vuelve de suspenderse y dejó la anterior muerta sin cerrar.
+          // Se avisa a la anterior para que, si sigue viva, deje de reconectar (si no, se quitarían el sitio sin parar).
           try { vieja.send({ tipo: 'sustituido' }); } catch (e) {}
           setTimeout(() => { try { vieja.close(); } catch (e) {} }, 500);
-          log(nombre + ': abierto en otra pestaña o móvil, se cierra el anterior');
+          log(nombre + ' vuelve a entrar; se cierra su conexión anterior');
         } else {
           try { vieja.close(); } catch (e) {}
           log(nombre + ' ha vuelto');
@@ -318,6 +342,20 @@ function procesar(conn, msg) {
     else conn.send({ tipo: 'bloqueado' });
   }
 }
+
+// Un mando que se suspende (por ejemplo, una Fire HD) puede dejar la conexión muerta sin cerrarla.
+// Los mandos envían un ping cada 2 s; si una conexión pasa 30 s sin dar señales, se cierra y la ficha
+// queda como desconectada. 30 s para que un bloqueo corto del móvil no cuente como corte.
+const SIN_NOTICIAS_MS = 30000;
+setInterval(() => {
+  for (const j of jugadores.values()) {
+    if (conectado(j) && performance.now() - (j.conn.ultimoMensaje || 0) > SIN_NOTICIAS_MS) {
+      log(j.nombre + ': 30 s sin noticias, se da por desconectado');
+      try { j.conn.close(); } catch (e) {}   // PeerJS emite 'close' en el acto: perdida() la registra
+      refrescar();
+    }
+  }
+}, 5000);
 
 function perdida(conn) {
   const j = jugadores.get(conn.jugadorId);
@@ -378,6 +416,6 @@ abrirSala(leer('sala') || nuevoCodigo());
 </script>
 <!-- Fase 0: la Fase 1 usará módulos ES; si este navegador no los ejecuta, el texto se queda en "no". -->
 <script type="module">document.getElementById('modulos').textContent = 'Módulos ES: sí';</script>
-<script src="../version.js?v=13"></script>
+<script src="../version.js?v=14"></script>
 </body>
 </html>

@@ -39,6 +39,10 @@
 
   Corregido en la v9 y probado en Chrome con tres casos: dos pestañas con la misma identidad, reapertura
   forzada y tablero que deja de contestar 12 s. Falta confirmarlo en casa.
+- Fire TV Stick 4K (Silk): «Pantalla siempre encendida: sí», «Módulos ES: sí», 960×540 CSS a escala 4.
+  Prueba de 15 minutos con iPhone, Fire HD 8 y tablet Android: la Android, 0 cortes; el iPhone y la Fire HD 8,
+  cortes al suspenderse. En la v14, el tablero cierra conexiones con 30 s sin mensajes y el mando no da falsas alarmas
+  al descongelarse (probado en Chrome). Falta repetir la prueba en casa con la v14.
 - Bloquear y desbloquear el iPhone no corta la conexión. Latencia entre 10 y 200 ms, normalmente por debajo de 100.
 - Las pruebas de red en Chrome sin interfaz necesitan tiempo real, no `--virtual-time-budget`, que impide
   que PeerJS conecte. El resultado se lee haciendo que la página pida `/resultado?…` al servidor local.

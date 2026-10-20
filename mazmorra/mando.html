@@ -277,7 +277,13 @@ function enviar(m) { if (conn && conn.open) conn.send(m); }
 // pareciendo abierta sin funcionar. Tras 8 s sin respuesta se da por perdida y se reconecta.
 // Solo con la página visible: en segundo plano el navegador frena los temporizadores.
 const SIN_RESPUESTA_MS = 8000;
+let ultimoTic = performance.now();
 setInterval(() => {
+  // Si este temporizador ha estado parado (página congelada al bloquear, aunque Safari no avise con
+  // visibilitychange), el último pong es de antes de congelarse: se da margen en vez de culpar al tablero.
+  const ahora = performance.now();
+  if (ahora - ultimoTic > 4000) ultimoPong = ahora;
+  ultimoTic = ahora;
   if (!(conn && conn.open)) return;
   if (document.visibilityState === 'visible' && performance.now() - ultimoPong > SIN_RESPUESTA_MS) {
     const muerta = conn;
@@ -315,6 +321,6 @@ document.addEventListener('visibilitychange', () => {
   if (sala && !rechazado && !(conn && conn.open)) conectar();
 });
 </script>
-<script src="../version.js?v=13"></script>
+<script src="../version.js?v=14"></script>
 </body>
 </html>

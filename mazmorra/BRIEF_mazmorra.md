@@ -108,6 +108,12 @@ Tipografías de Google Fonts: Fredoka (interfaz) y Grenze Gotisch (título).
 - Si el tablero no contesta los pings en 8 s (página visible), el mando da la conexión por perdida y reconecta.
   Cubre las conexiones muertas que parecen abiertas, por ejemplo al suspenderse la tele.
   Si tras abrir no llega `bienvenida` en 4 s, repite el `hola`.
+- El mando no culpa al tablero si su propio temporizador ha estado parado más de 4 s (página congelada al bloquear
+  sin que Safari avise con `visibilitychange`): da margen antes de aplicar los 8 s.
+- El tablero da por desconectada una conexión que pasa 30 s sin mensajes (los mandos hacen ping cada 2 s).
+  Lo hace la Fire HD 8 al suspenderse: deja la conexión muerta sin cerrarla. 30 s para que un bloqueo corto
+  del móvil no cuente como corte.
+- El registro del tablero guarda los 50 últimos eventos; al pulsar sobre él se abre entero.
 - Al recargar la misma pestaña, el mando vuelve a entrar solo: la sala va en sessionStorage.
   En una pestaña nueva se sigue pidiendo el nombre.
 
@@ -124,11 +130,15 @@ En curso. Lista completa en el `README.md` de esta carpeta.
 | Latencia que marcan los móviles (ms)           | 10–200, normalmente < 100                 |                               |
 | Reconexión al bloquear y desbloquear un móvil  | OK (iPhone, no se perdió la conexión)     |                               |
 | Reconexión al recargar el tablero              |                                           |                               |
-| Pantalla encendida 15 minutos                  | No: la tele entró en suspensión           |                               |
-| «Módulos ES: sí»                               |                                           |                               |
+| Pantalla encendida 15 minutos                  | «Pantalla siempre encendida: sí» (v13); prueba de 15 min con 3 mandos en curso |  |
+| «Módulos ES: sí»                               | Sí (v13)                                  |                               |
+| Medidas                                        | 960×540 CSS, escala 4 (Fire TV Stick 4K), casilla 56 px |                 |
 | Se ve bien desde la mesa / el sofá             | Tablero, casillas e indicador de jugador bien |                           |
 
-Mandos usados (modelo y navegador): iPhone con Safari; tablet como mando (navegador por anotar).
+Mandos usados (modelo y navegador):
+- iPhone con Safari: conexión `host/prflx`, que sigue siendo directa por la wifi.
+- Fire HD 8 con Silk.
+- Tablet Android: 0 cortes en toda la prueba.
 Conclusión (Fire Stick, tablet o ambos):
 Incidencias (Fire Stick, 2026-10-19):
 - Hasta la v5, las fichas se dibujaban desplazadas por un `padding` en % (medido sobre el tablero). Corregido.
@@ -147,6 +157,18 @@ Incidencias (Fire Stick, 2026-10-19):
   Corregido en la v9 con el plazo de 8 s sin respuesta y la repetición del `hola`; probado en Chrome
   con un tablero que deja de contestar 12 s. Falta revisar el salvapantallas del Fire TV, que no
   debería saltar con el tablero abierto.
+
+Incidencias (Fire Stick, 2026-10-20, v13, iPhone + Fire HD 8 + tablet Android):
+- La columna derecha no cabía en 960×540 y ocultaba los jugadores, el estado y el registro. Corregido en la v12
+  con tamaños en vh; probado a 540, 480 y 420 px de alto.
+- El aviso de versión nueva volvía tras recargar: Silk reutilizaba `version.js` guardado (`max-age=600`).
+  Corregido en la v13 con `version.js?v=N`, que escribe el hook.
+- iPhone: al bloquearse solo y pasar un rato, 2 cortes («sin respuesta del tablero»). El bloqueo manual corto
+  no corta. Para evitar falsas alarmas al descongelarse, el mando da margen si su temporizador estuvo parado (v14).
+- Fire HD 8: al suspenderse, el registro decía «abierto en otra pestaña o móvil», sin haber otra pestaña, y no
+  movía hasta recargar. Causa probable: el tablero seguía dando por buena la conexión muerta de antes de
+  suspenderse. Desde la v14, el tablero cierra las conexiones con 30 s sin mensajes y el registro dice
+  «vuelve a entrar; se cierra su conexión anterior». Probado en Chrome con un mando congelado.
 
 ## 4. Restricciones técnicas
 
