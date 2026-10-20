@@ -66,6 +66,17 @@
   li .est { margin-left: auto; color: var(--tenue); font-size: .85rem; }
   #log { font-size: .75rem; color: var(--tenue); margin-top: auto; min-height: 6em; }
   #log p { margin: 2px 0; }
+  /* Pantallas bajas (Silk en el Fire Stick trabaja a 960×540): todo tiene que caber sin desplazar la columna. */
+  @media (max-height: 640px) and (min-aspect-ratio: 1/1) {
+    aside { padding: 14px 16px; gap: 9px; }
+    h1 { font-size: 1.6rem; }
+    #codigo { font-size: 2.2rem; }
+    #qr { padding: 6px; }
+    #qr img, #qr canvas { width: 116px; height: 116px; }
+    #url { display: none; }
+    .ayuda { font-size: .85rem; }
+    #log { min-height: 0; overflow: hidden; }
+  }
   @media (max-aspect-ratio: 1/1) {
     body { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
     aside { flex-direction: row; flex-wrap: wrap; align-items: flex-start; }
