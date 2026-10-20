@@ -1,0 +1,83 @@
+/* Tablero (host.html): mazmorra a la izquierda, sala y jugadores a la derecha. */
+:root {
+  --losa: #B9A27C;
+  --losa2: #AD9570;
+  --muro: #3A3530;
+  --celda: 48px;
+}
+body {
+  display: grid;
+  /* minmax(0, …): la columna del tablero no crece con su contenido; si no, el tablero no encoge al reducirse la pantalla. */
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 24vw);
+  overflow: hidden;
+}
+#zona { display: grid; place-items: center; padding: 2vmin; min-height: 0; min-width: 0; overflow: hidden; }
+#tablero { position: relative; outline: 4px solid var(--tinta); }
+/* Posición y tamaño de casillas y fichas: en píxeles desde js/tablero/dibujo.js, no con calc(var()). */
+.casilla { position: absolute; left: 0; top: 0; }
+.losa { background: var(--losa); outline: 1px solid var(--losa2); }
+.muro { background: var(--muro); border-radius: 3px; }
+.ficha {
+  position: absolute; left: 0; top: 0;
+  display: grid; place-items: center;
+  transition: transform 160ms ease-out;
+}
+.ficha div {
+  /* Porcentajes del tamaño de la ficha (un padding en % se mediría sobre el ancho del tablero). */
+  width: 76%; height: 76%; border-radius: 50%;
+  display: grid; place-items: center;
+  font-weight: 600; font-size: calc(var(--celda) * 0.42);
+  color: #fff; border: 3px solid rgba(255,255,255,.85);
+}
+.ficha.ausente div { opacity: .35; }
+aside {
+  background: var(--noche2);
+  padding: 24px 20px;
+  display: flex; flex-direction: column; gap: 18px;
+  overflow-y: auto;
+}
+h1 { font-size: 2rem; line-height: 1; }
+#codigo { font-size: 3rem; font-weight: 600; letter-spacing: .12em; line-height: 1; }
+#qr { background: var(--tinta); padding: 10px; border-radius: 8px; width: fit-content; }
+#qr img, #qr canvas { display: block; }
+.ayuda { font-size: .95rem; }
+#url { color: var(--tenue); font-size: .75rem; word-break: break-all; }
+ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+li { display: flex; align-items: center; gap: 10px; }
+.punto { width: 16px; height: 16px; border-radius: 50%; flex: none; }
+li .est { margin-left: auto; color: var(--tenue); font-size: .85rem; }
+#verRegistro {
+  margin-top: auto; align-self: flex-start; cursor: pointer;
+  font: inherit; font-size: .8rem; padding: 4px 10px; border-radius: 6px;
+  border: 1px solid var(--tenue); background: transparent; color: var(--tinta);
+}
+#log { font-size: .75rem; color: var(--tenue); min-height: 6em; cursor: pointer; }
+#log p, #logCompleto p { margin: 2px 0; }
+/* Registro completo: se abre con el botón o pulsando sobre el registro, y se cierra con otro clic. */
+#registro {
+  position: fixed; inset: 0; z-index: 50; overflow-y: auto; cursor: pointer;
+  background: rgba(28, 33, 64, .97); padding: 24px 32px; font-size: .9rem;
+}
+#registro h2 { margin: 0 0 12px; font-size: 1.3rem; }
+/* Pantallas bajas (Silk en el Fire Stick: 960×540 o menos si muestra su barra). Todo tiene que caber
+   sin desplazar la columna, así que los tamaños van en vh (proporcionales a la altura disponible). */
+@media (max-height: 640px) and (min-aspect-ratio: 1/1) {
+  aside { padding: 2.4vh 16px; gap: 1.5vh; font-size: max(11px, 2.9vh); }
+  h1 { font-size: 5.4vh; }
+  #codigo { font-size: 7vh; }
+  #qr { padding: 1vh; }
+  #qr img, #qr canvas { width: 21vh; height: 21vh; }
+  #url { display: none; }
+  .ayuda { font-size: max(10px, 2.5vh); }
+  ul { gap: .8vh; }
+  .punto { width: 2.6vh; height: 2.6vh; }
+  #log { min-height: 0; overflow: hidden; font-size: max(9px, 2.1vh); }
+}
+@media (max-height: 470px) and (min-aspect-ratio: 1/1) {
+  #ayudaQr { display: none; }
+}
+@media (max-aspect-ratio: 1/1) {
+  body { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  aside { flex-direction: row; flex-wrap: wrap; align-items: flex-start; }
+  #log { display: none; }
+}

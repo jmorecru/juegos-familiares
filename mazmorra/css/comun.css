@@ -1,0 +1,20 @@
+/* Estilos comunes del tablero y del mando. */
+:root {
+  --noche: #1C2140;
+  --noche2: #262C52;
+  --tinta: #F2E9D8;
+  --tenue: #A9A4C4;
+  --aviso: #E0A000;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--noche);
+  color: var(--tinta);
+  font-family: 'Fredoka', system-ui, sans-serif;
+}
+h1 { font-family: 'Grenze Gotisch', serif; font-weight: 600; margin: 0; }
+.ayuda { color: var(--tenue); margin: 0; }
+.oculto { display: none !important; }
+/* Información técnica: solo con ?diag=1 en la dirección (lo activa js/comun/diagnostico.js). */
+html:not(.diag) .solo-diag { display: none !important; }

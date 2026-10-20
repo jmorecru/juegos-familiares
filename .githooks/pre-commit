@@ -1,8 +1,10 @@
 #!/bin/sh
 # En cada commit:
 #  - escribe en version.js el número de versión (commits + 1) y la fecha;
-#  - pone ese número en las páginas que cargan version.js (version.js?v=N), para que el navegador
-#    no use una copia guardada (GitHub Pages permite guardarla 10 minutos).
+#  - en las páginas HTML, pone ?v=N en los ficheros propios que cargan (src="….js", href="….css") y en
+#    los valores del mapa de importaciones ("…": "./js/….js"), para que el navegador no mezcle ficheros
+#    guardados de versiones distintas (GitHub Pages permite guardarlos 10 minutos).
+#    Las direcciones externas (https://…) no se tocan: el patrón no admite ":" en la ruta.
 # Cambia el fichero y también lo preparado para el commit, sin añadir otros cambios no preparados.
 # Se activa una vez por clon con: git config core.hooksPath .githooks
 cd "$(git rev-parse --show-toplevel)" || exit 1
@@ -19,8 +21,10 @@ actualizar() {
   git update-index --cacheinfo "$modo,$blob,$1"
 }
 
+ruta='[A-Za-z0-9_./-]+\.(js|css)'
 actualizar version.js "s/^const VERSION = .*/const VERSION = { numero: $numero, fecha: '$fecha' };/"
 for f in $(git ls-files '*.html'); do
-  grep -q 'version\.js' "$f" && actualizar "$f" "s#(version\.js)(\?v=[0-9]+)?\"#\1?v=$numero\"#"
+  grep -qE "(src|href)=\"$ruta(\?v=[0-9]+)?\"|: *\"$ruta(\?v=[0-9]+)?\"" "$f" || continue
+  actualizar "$f" "s#((src|href)=\")($ruta)(\?v=[0-9]+)?\"#\1\3?v=$numero\"#g; s#(: *\")($ruta)(\?v=[0-9]+)?\"#\1\2?v=$numero\"#g"
 done
 exit 0
