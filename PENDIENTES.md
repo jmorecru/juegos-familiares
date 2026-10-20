@@ -1,7 +1,8 @@
 # Pendientes
 
 ## Abiertas
-- **Mazmorra – Probar en casa la versión en módulos (v23).** Por qué: la Fase 1 cambia cómo se carga todo
+- **Mazmorra – Probar en casa la versión en módulos (v25).** Las tablets entran; el iPhone se quedó atascado
+  con la v23 hasta recargar (corregido en la v25, ver el brief). Por qué: la Fase 1 cambia cómo se carga todo
   (módulos, mapa de importaciones, prefijo de claves). Está probada en Chrome, pero no en Silk, el iPhone ni la
   Fire HD 8. Lista corta en `mazmorra/README.md` («Lista de comprobación en casa»).
   Comprobar también que el tablero conserva su código de sala y los mandos su nombre (paso de claves).
@@ -36,7 +37,7 @@
   Detalle y fallos corregidos por el camino en la sección «Resultados de la Fase 0» de `mazmorra/BRIEF_mazmorra.md`.
 - **Fase 1 hecha (2026-10-20, v19–v23)**: la mazmorra está dividida en módulos ES (`mazmorra/js/`), con el mapa en
   JSON, el diagnóstico detrás de `?diag=1` y claves con prefijo `mazmorra.` (las antiguas se pasan solas).
-  Comprobado en Chrome: `pruebas/motor.html` pasa sus 15 pruebas y `pruebas/red.html` sus 7 escenarios.
+  Comprobado en Chrome: `pruebas/motor.html` pasa sus 15 pruebas y `pruebas/red.html` sus escenarios (8 desde la v25).
   El navegador pide todos los módulos, estilos y el mapa con `?v=N`.
 - El hook versiona `src`/`href` propios y los valores del mapa de importaciones, y no toca las claves del mapa ni
   las direcciones externas (probado en una copia del repositorio).

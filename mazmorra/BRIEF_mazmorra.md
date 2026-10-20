@@ -69,7 +69,7 @@ juego: fichas que se mueven por una sala de pruebas de 12×8.
 | `js/tablero/`, `js/mando/` | Interfaz: dibujo del tablero, registro de eventos, cruceta              |
 | `js/comun/`              | Almacenamiento con prefijo, pantalla siempre encendida, modo `?diag=1`     |
 | `datos/mapas/prueba.json`| La sala de pruebas                                                         |
-| `pruebas/`               | `motor.html` (15 pruebas) y `red.html` (7 escenarios de la Fase 0, ~2 min) |
+| `pruebas/`               | `motor.html` (15 pruebas) y `red.html` (8 escenarios de fallos vistos en casa, ~2,5 min) |
 
 Detalle de la estructura, del modo diagnóstico y de cómo pasar las pruebas en el `README.md` de esta carpeta.
 
@@ -129,6 +129,9 @@ Tipografías de Google Fonts: Fredoka (interfaz) y Grenze Gotisch (título).
   (`NotAllowedError`). Por eso se reintenta con cualquier toque en la página (`pointerup`/`touchend`/`click`)
   y, mientras falte, el mando muestra el aviso «Toca la pantalla para que no se apague».
 - Al recargar la misma pestaña, el mando vuelve a entrar solo: la sala va en sessionStorage.
+- Si un intento de entrada no recibe respuesta en 10 s, el mando desecha su Peer y crea uno nuevo, con una
+  conexión nueva con el servidor de emparejamiento. Safari, tras bloquear el iPhone, puede dejar esa conexión
+  muerta aunque parezca abierta; reintentar con el mismo Peer no lo arreglaba y solo lo hacía recargar (v25).
   En una pestaña nueva se sigue pidiendo el nombre.
 
 ### Resultados de la Fase 0
@@ -228,6 +231,13 @@ Además de lo previsto:
 - los fallos de la Fase 0 son ahora pruebas automáticas (`pruebas/red.html`).
 
 Falta repetir en casa la lista de comprobación del `README.md` con la versión en módulos.
+
+Incidencia con la v23 (2026-10-20): el iPhone no entraba («la conexión directa no se completa»), con el mismo
+código de sala y las tablets dentro. Recargando el mando entró sin problema, con el mismo código (v24 idéntica).
+Causa probable: la conexión del iPhone con el servidor de emparejamiento muerta sin avisar, así que las ofertas
+no llegaban al tablero. Desde la v25, el mando crea un Peer nuevo cuando un intento no recibe respuesta en 10 s;
+es un escenario de `pruebas/red.html`. Para descartar la versión en módulos se publicó un rato una copia del mando
+de la v18 (`pruebas/mando-v18.html`), ya borrada; no hizo falta usarla.
 
 **Fase 2 – Reglas básicas**: turnos, tirada de movimiento, combate cuerpo a cuerpo, puntos de vida,
 fin de partida. Héroes con atributos y nombres originales.

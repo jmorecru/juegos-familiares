@@ -86,6 +86,10 @@ export class Cliente {
     this.vigilante = setTimeout(() => {
       if (esta.open) return;
       this.cb.alEstado('La conexión directa no se completa. Comprueba que el móvil y el tablero están en la misma wifi (las redes de invitados suelen bloquearlo).');
+      // La oferta no ha tenido respuesta. Puede que la conexión con el servidor de emparejamiento esté muerta
+      // aunque parezca abierta (visto en Safari tras bloquear el iPhone): reintentar con el mismo Peer no
+      // arreglaba nada y solo lo hacía una recarga. Se empieza con un Peer nuevo, como al recargar.
+      this.renovarPeer();
       this.programarReintento();
     }, CONEXION_DIRECTA_MS);
 
@@ -128,6 +132,13 @@ export class Cliente {
     this.cb.alEstado('Se ha perdido la conexión. Reconectando…');
     this.cb.alCambio();
     this.programarReintento();
+  }
+
+  renovarPeer() {
+    const peer = this.peer;
+    this.peer = null;
+    this.conn = null;   // se suelta antes: al destruir el Peer, su 'close' no debe contar como corte
+    try { if (peer) peer.destroy(); } catch (e) { /* ya destruido */ }
   }
 
   programarReintento() {

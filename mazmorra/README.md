@@ -72,8 +72,9 @@ Desde la raíz del repositorio, `python -m http.server 8000`, y en el navegador:
 - **Pruebas del motor**: `http://localhost:8000/mazmorra/pruebas/motor.html`. Reglas y claves guardadas; tarda
   un instante.
 - **Pruebas de red**: `http://localhost:8000/mazmorra/pruebas/red.html`. Abre un tablero y mandos de verdad y
-  reproduce los fallos vistos en casa: bucle de cortes, recarga, pestaña duplicada, tablero que no contesta y
-  mando congelado. Tarda unos 2 minutos y solo se ejecuta en `localhost`, porque borra los datos guardados.
+  reproduce los fallos vistos en casa: bucle de cortes, recarga, pestaña duplicada, tablero que no contesta,
+  canal de emparejamiento muerto y mando congelado. Tarda unos 2 minutos y medio y solo se ejecuta en
+  `localhost`, porque borra los datos guardados.
 
 Hay que pasarlas antes de publicar cualquier cambio en `js/red/`. El resultado aparece en la página y, además,
 la página pide `/resultado?…` al servidor local, así que también se puede leer en su registro.

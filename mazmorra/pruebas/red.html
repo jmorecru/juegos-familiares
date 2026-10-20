@@ -15,7 +15,7 @@
 <h1>Pruebas de red de la mazmorra</h1>
 <p>
   Abre un tablero y mandos de verdad en marcos de esta página y reproduce los fallos vistos en casa durante la
-  Fase 0. Tarda unos 2 minutos y necesita internet (el emparejamiento de PeerJS). Solo funciona en local, porque
+  Fase 0. Tarda unos 2 minutos y medio y necesita internet (el emparejamiento de PeerJS). Solo funciona en local, porque
   borra los datos guardados del navegador: desde la raíz del repositorio, <code>python -m http.server 8000</code>
   y abrir <code>http://localhost:8000/mazmorra/pruebas/red.html</code>.
 </p>
@@ -156,6 +156,15 @@ if (!['localhost', '127.0.0.1'].includes(location.hostname)) {
     const j = motorDe(tablero).partida.jugadores.get(c.jugadorId), x = j.x;
     pulsar(m2, 'der');
     si(await hasta(() => j.x === x + 1, 5000), 'no se puede mover después');
+  });
+
+  await paso('Si el canal con el servidor de emparejamiento muere sin avisar, el mando empieza uno nuevo', async () => {
+    const c = cliente(m2);
+    const viejo = c.peer;
+    viejo.socket.send = () => {};   // como Safari tras bloquear el iPhone: parece abierto, pero no envía nada
+    c.abrirConexion();              // un intento de entrada que no recibirá respuesta
+    si(await hasta(() => c.peer && c.peer !== viejo, 15000), 'sigue con el canal muerto');
+    si(await hasta(() => dentro(m2), 20000), 'no vuelve a entrar: ' + estadoDe(m2));
   });
 
   await paso('Un mando congelado: el tablero lo da por desconectado a los 30 s', async () => {
