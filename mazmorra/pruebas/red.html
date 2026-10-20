@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pruebas de red</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 24px; }
+  li { margin: 4px 0; }
+  .ok { color: #2E8B57; } .fallo { color: #D7263D; font-weight: 600; }
+  #marcos iframe { border: 1px solid #ccc; margin: 4px; vertical-align: top; }
+</style>
+</head>
+<body>
+<h1>Pruebas de red de la mazmorra</h1>
+<p>
+  Abre un tablero y mandos de verdad en marcos de esta página y reproduce los fallos vistos en casa durante la
+  Fase 0. Tarda unos 2 minutos y necesita internet (el emparejamiento de PeerJS). Solo funciona en local, porque
+  borra los datos guardados del navegador: desde la raíz del repositorio, <code>python -m http.server 8000</code>
+  y abrir <code>http://localhost:8000/mazmorra/pruebas/red.html</code>.
+</p>
+<p id="resumen">Ejecutando…</p>
+<ol id="lista"></ol>
+<div id="marcos"></div>
+
+<script type="module">
+const resultados = [];
+const espera = ms => new Promise(r => setTimeout(r, ms));
+
+async function paso(nombre, fn) {
+  const li = document.createElement('li');
+  li.textContent = '… ' + nombre;
+  document.getElementById('lista').appendChild(li);
+  try {
+    await fn();
+    resultados.push({ nombre, ok: true });
+    li.className = 'ok';
+    li.textContent = '✔ ' + nombre;
+  } catch (e) {
+    resultados.push({ nombre, ok: false });
+    li.className = 'fallo';
+    li.textContent = '✘ ' + nombre + ' — ' + e.message;
+  }
+}
+function si(condicion, explicacion) { if (!condicion) throw new Error(explicacion); }
+async function hasta(condicion, ms = 15000, cada = 250) {
+  const fin = performance.now() + ms;
+  while (performance.now() < fin) {
+    try { if (condicion()) return true; } catch (e) { /* aún cargando */ }
+    await espera(cada);
+  }
+  return false;
+}
+
+/* ---------- tablero y mandos en marcos ---------- */
+
+function marco(src, ancho, alto) {
+  const f = document.createElement('iframe');
+  f.width = ancho;
+  f.height = alto;
+  const cargado = new Promise(r => { f.onload = () => r(f); });
+  f.src = src;
+  document.getElementById('marcos').appendChild(f);
+  return cargado;
+}
+const recargado = f => new Promise(r => { f.onload = () => r(f); });
+
+async function abrirTablero() {
+  const f = await marco('../host.html?diag=1', 640, 360);
+  si(await hasta(() => /^[A-Z]{4}$/.test(f.contentDocument.getElementById('codigo').textContent), 25000), 'el tablero no abre sala');
+  return f;
+}
+const codigoDe = tablero => tablero.contentDocument.getElementById('codigo').textContent;
+const motorDe = tablero => tablero.contentWindow.__tablero;
+
+async function abrirMando(codigo, nombre) {
+  const f = await marco('../mando.html?diag=1&sala=' + codigo, 300, 560);
+  await espera(300);
+  // Si esta pestaña ya estaba en la sala, el mando entra solo; si no, se rellena el formulario.
+  if (!f.contentWindow.__mando.cliente.sala) {
+    f.contentDocument.getElementById('nombre').value = nombre;
+    f.contentDocument.getElementById('entrada').requestSubmit();
+  }
+  return f;
+}
+const cliente = f => f.contentWindow.__mando.cliente;
+const estadoDe = f => f.contentDocument.getElementById('estado').textContent;
+const dentro = f => cliente(f).conectado && /^Conectado como/.test(estadoDe(f));
+function pulsar(f, direccion) {
+  const boton = f.contentDocument.querySelector('#cruceta .' + direccion);
+  boton.dispatchEvent(new f.contentWindow.PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+}
+
+/* ---------- pruebas ---------- */
+
+let tablero, m1, m2;
+
+if (!['localhost', '127.0.0.1'].includes(location.hostname)) {
+  document.getElementById('resumen').textContent = 'Solo se ejecuta en local (localhost): borra los datos guardados del navegador.';
+} else {
+  localStorage.clear();
+  sessionStorage.clear();
+
+  await paso('El tablero abre sala y el mando entra', async () => {
+    tablero = await abrirTablero();
+    m1 = await abrirMando(codigoDe(tablero), 'Ana');
+    si(await hasta(() => dentro(m1)), 'el mando no entra: ' + estadoDe(m1));
+  });
+
+  await paso('El mando mueve su ficha y el tablero lo valida', async () => {
+    const j = motorDe(tablero).partida.jugadores.get(cliente(m1).jugadorId);
+    pulsar(m1, 'der');
+    si(await hasta(() => j.x === 1 && j.y === 0, 5000), 'la ficha no se mueve');
+    si(await hasta(() => m1.contentDocument.getElementById('datos').textContent.includes('Casilla 2, 1'), 5000), 'el mando no recibe su posición');
+  });
+
+  await paso('Si vuelve el servidor de emparejamiento, no hay bucle de cortes', async () => {
+    const c = cliente(m1);
+    c.peer.emit('open', c.peer.id);   // antes abría otra conexión y cerraba la buena
+    await espera(4000);
+    c.abrirConexion();                // reapertura directa: antes entraba en bucle
+    await espera(8000);
+    si(c.cortes === 0, 'cortes: ' + c.cortes + ' (' + c.ultimoCorte + ')');
+    si(dentro(m1), 'no sigue conectado');
+  });
+
+  await paso('Al recargar, el mando vuelve a entrar solo y conserva su ficha', async () => {
+    const id = cliente(m1).jugadorId;
+    const esperaCarga = recargado(m1);
+    m1.contentWindow.location.reload();
+    await esperaCarga;
+    si(await hasta(() => dentro(m1)), 'no vuelve a entrar: ' + estadoDe(m1));
+    si(m1.contentDocument.getElementById('entrada').classList.contains('oculto'), 'vuelve a pedir los datos');
+    const j = motorDe(tablero).partida.jugadores.get(id);
+    si(j && j.x === 1 && motorDe(tablero).partida.jugadores.size === 1, 'no conserva su ficha');
+  });
+
+  await paso('Otra pestaña con la misma identidad: la anterior deja de reconectar', async () => {
+    m2 = await abrirMando(codigoDe(tablero), 'Ana');   // mismo almacenamiento → misma identidad
+    si(await hasta(() => dentro(m2)), 'la nueva no entra');
+    si(await hasta(() => /otra pestaña/.test(estadoDe(m1)), 8000), 'la anterior no se entera: ' + estadoDe(m1));
+    await espera(6000);
+    si(dentro(m2), 'la nueva no sigue conectada (se quitan el sitio)');
+    m1.remove();
+  });
+
+  await paso('Si el tablero deja de contestar, el mando lo detecta y vuelve a entrar solo', async () => {
+    const sala = motorDe(tablero).sala;
+    const c = cliente(m2), antes = c.cortes;
+    sala.recibir = () => {};   // el tablero "se suspende": no contesta, pero no cierra nada
+    si(await hasta(() => c.cortes > antes, 15000), 'no detecta el silencio');
+    si(c.ultimoCorte === 'sin respuesta del tablero', 'motivo: ' + c.ultimoCorte);
+    await espera(3000);
+    delete sala.recibir;        // el tablero "despierta"
+    si(await hasta(() => dentro(m2), 20000), 'no vuelve a entrar: ' + estadoDe(m2));
+    const j = motorDe(tablero).partida.jugadores.get(c.jugadorId), x = j.x;
+    pulsar(m2, 'der');
+    si(await hasta(() => j.x === x + 1, 5000), 'no se puede mover después');
+  });
+
+  await paso('Un mando congelado: el tablero lo da por desconectado a los 30 s', async () => {
+    const c = cliente(m2);
+    c.enviar = () => {};        // la tablet "se suspende": no envía nada ni comprueba nada
+    c.ultimoPong = Infinity;
+    const registro = () => tablero.contentDocument.getElementById('logCompleto').textContent;
+    si(await hasta(() => /30 s sin noticias/.test(registro()), 40000, 1000), 'el tablero no lo da por desconectado');
+  });
+
+  const fallos = resultados.filter(r => !r.ok).length;
+  const resumen = document.getElementById('resumen');
+  resumen.textContent = fallos ? fallos + ' de ' + resultados.length + ' pruebas fallan.' : 'Las ' + resultados.length + ' pruebas pasan.';
+  resumen.className = fallos ? 'fallo' : 'ok';
+  document.title = (fallos ? 'FALLO' : 'OK') + ' – pruebas de red';
+  document.getElementById('marcos').remove();
+}
+// Con un servidor local, el resultado queda en su registro (así se leen sin abrir el navegador).
+fetch('/resultado?' + encodeURIComponent(document.body.innerText)).catch(() => {});
+</script>
+</body>
+</html>
