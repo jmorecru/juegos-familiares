@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pruebas del motor</title>
+<script type="importmap">
+{
+  "imports": {
+    "../js/motor/partida.js": "../js/motor/partida.js?v=20",
+    "../js/comun/almacen.js": "../js/comun/almacen.js?v=20"
+  }
+}
+</script>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 24px; max-width: 760px; }
+  li { margin: 4px 0; }
+  .ok { color: #2E8B57; } .fallo { color: #D7263D; font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>Pruebas del motor y del almacén</h1>
+<p>Reglas de <code>js/motor/partida.js</code> y claves de <code>js/comun/almacen.js</code>. No necesitan red.</p>
+<p id="resumen">Ejecutando…</p>
+<ul id="lista"></ul>
+
+<script type="module">
+import { crearPartida, unir, aplicar, vistaPara, MAX_JUGADORES, COLORES } from '../js/motor/partida.js';
+import { leer, migrarClavesAntiguas } from '../js/comun/almacen.js';
+
+const resultados = [];
+function prueba(nombre, fn) {
+  try { fn(); resultados.push({ nombre, ok: true }); }
+  catch (e) { resultados.push({ nombre, ok: false, error: e.message }); }
+}
+function igual(real, esperado, que) {
+  const a = JSON.stringify(real), b = JSON.stringify(esperado);
+  if (a !== b) throw new Error((que ? que + ': ' : '') + 'sale ' + a + ', se esperaba ' + b);
+}
+
+const mapa = await (await fetch('../datos/mapas/prueba.json?t=' + Date.now())).json();
+const nueva = () => crearPartida(mapa);
+const mover = (p, id, dx, dy) => aplicar(p, id, { tipo: 'mover', dx, dy });
+const pos = (p, id) => { const j = p.jugadores.get(id); return [j.x, j.y]; };
+
+prueba('El mapa de prueba es de 12×8 con 5 salidas', () => {
+  const p = nueva();
+  igual([p.mapa.ancho, p.mapa.alto, p.mapa.salidas.length], [12, 8, 5]);
+});
+prueba('Un mapa que no es rectangular se rechaza', () => {
+  let error = null;
+  try { crearPartida({ filas: ['...', '..'], salidas: [] }); } catch (e) { error = e; }
+  if (!error) throw new Error('no ha fallado');
+});
+prueba('El primer jugador entra en la primera salida con el primer color', () => {
+  const p = nueva();
+  const r = unir(p, 'a', 'Ana');
+  igual([r.nuevo, r.jugador.color, pos(p, 'a')], [true, COLORES[0], [0, 0]]);
+});
+prueba('El segundo jugador va a la siguiente salida libre con otro color', () => {
+  const p = nueva();
+  unir(p, 'a', 'Ana');
+  const r = unir(p, 'b', 'Bea');
+  igual([r.jugador.color, pos(p, 'b')], [COLORES[1], [11, 0]]);
+});
+prueba('Un jugador que vuelve conserva ficha, color y posición, y actualiza el nombre', () => {
+  const p = nueva();
+  unir(p, 'a', 'Ana');
+  mover(p, 'a', 1, 0);
+  const r = unir(p, 'a', 'Anita');
+  igual([r.nuevo, r.jugador.color, pos(p, 'a'), r.jugador.nombre], [false, COLORES[0], [1, 0], 'Anita']);
+});
+prueba('Con la sala llena se rechaza a uno nuevo, pero puede volver uno que ya estaba', () => {
+  const p = nueva();
+  for (let i = 0; i < MAX_JUGADORES; i++) unir(p, 'j' + i, 'J' + i);
+  igual(unir(p, 'otro', 'Otro'), { rechazo: 'La sala está llena.' });
+  igual(unir(p, 'j0', 'J0').nuevo, false, 'vuelve j0');
+});
+prueba('Moverse a una casilla de suelo', () => {
+  const p = nueva();
+  unir(p, 'a', 'Ana');
+  igual([mover(p, 'a', 1, 0), pos(p, 'a')], [{ ok: true }, [1, 0]]);
+});
+prueba('El borde bloquea y la ficha no se mueve', () => {
+  const p = nueva();
+  unir(p, 'a', 'Ana');
+  igual([mover(p, 'a', 0, -1), pos(p, 'a')], [{ ok: false, motivo: 'bloqueado' }, [0, 0]]);
+});
+prueba('Un muro bloquea', () => {
+  const p = nueva();
+  unir(p, 'a', 'Ana');
+  mover(p, 'a', 1, 0); mover(p, 'a', 0, 1);   // (1, 1); a la derecha, (2, 1), hay muro
+  igual([mover(p, 'a', 1, 0), pos(p, 'a')], [{ ok: false, motivo: 'bloqueado' }, [1, 1]]);
+});
+prueba('Otra ficha bloquea', () => {
+  const p = nueva();
+  unir(p, 'a', 'Ana');
+  unir(p, 'b', 'Bea');
+  p.jugadores.get('b').x = 1; p.jugadores.get('b').y = 0;
+  igual(mover(p, 'a', 1, 0), { ok: false, motivo: 'bloqueado' });
+});
+prueba('Un movimiento en diagonal solo avanza en horizontal', () => {
+  const p = nueva();
+  unir(p, 'a', 'Ana');
+  mover(p, 'a', 1, 1);
+  igual(pos(p, 'a'), [1, 0]);
+});
+prueba('Valores raros se convierten en un solo paso o en nada', () => {
+  const p = nueva();
+  unir(p, 'a', 'Ana');
+  mover(p, 'a', 5, 0);
+  igual(pos(p, 'a'), [1, 0], 'dx = 5');
+  igual(mover(p, 'a', 'x', null), { ok: false, motivo: 'sin movimiento' });
+});
+prueba('Un jugador desconocido no puede mover', () => {
+  igual(mover(nueva(), 'nadie', 1, 0).ok, false);
+});
+prueba('Cada jugador solo ve su posición y el total', () => {
+  const p = nueva();
+  unir(p, 'a', 'Ana');
+  unir(p, 'b', 'Bea');
+  igual(vistaPara(p, 'b'), { x: 11, y: 0, total: 2 });
+});
+prueba('Las claves antiguas pasan al prefijo «mazmorra.» sin pisar las nuevas', () => {
+  const claves = ['nombre', 'sala', 'mazmorra.nombre', 'mazmorra.sala'];
+  const copia = {};
+  for (const k of claves) copia[k] = localStorage.getItem(k);
+  try {
+    localStorage.setItem('nombre', 'Ana');
+    localStorage.removeItem('mazmorra.nombre');
+    localStorage.setItem('sala', 'VIEJ');
+    localStorage.setItem('mazmorra.sala', 'NUEV');
+    migrarClavesAntiguas();
+    igual([leer('nombre'), localStorage.getItem('nombre')], ['Ana', null], 'nombre');
+    igual([leer('sala'), localStorage.getItem('sala')], ['NUEV', null], 'sala');
+  } finally {
+    for (const k of claves) copia[k] === null ? localStorage.removeItem(k) : localStorage.setItem(k, copia[k]);
+  }
+});
+
+const fallos = resultados.filter(r => !r.ok);
+document.getElementById('resumen').textContent =
+  fallos.length ? fallos.length + ' de ' + resultados.length + ' pruebas fallan.' : 'Las ' + resultados.length + ' pruebas pasan.';
+document.getElementById('resumen').className = fallos.length ? 'fallo' : 'ok';
+for (const r of resultados) {
+  const li = document.createElement('li');
+  li.className = r.ok ? 'ok' : 'fallo';
+  li.textContent = (r.ok ? '✔ ' : '✘ ') + r.nombre + (r.error ? ' — ' + r.error : '');
+  document.getElementById('lista').appendChild(li);
+}
+document.title = (fallos.length ? 'FALLO' : 'OK') + ' – pruebas del motor';
+// Con un servidor local, el resultado queda en su registro (así se leen sin abrir el navegador).
+fetch('/resultado?' + encodeURIComponent(document.body.innerText)).catch(() => {});
+</script>
+</body>
+</html>
