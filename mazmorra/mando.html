@@ -115,8 +115,24 @@ document.getElementById('entrada').addEventListener('submit', e => {
   if (!/^[A-Z]{4}$/.test(sala)) { estado('El código de sala tiene 4 letras. Lo ves en el tablero.'); return; }
   guardar('nombre', nombre);
   guardar('ultimaSala', sala);
+  mantenerPantalla();
   conectar();
 });
+
+// Pantalla siempre encendida mientras se juega: si el móvil se bloquea solo, Safari o Silk congelan la página
+// y el jugador se desconecta. Se pide al entrar (gesto del usuario), al tocar la cruceta y al volver a la pestaña.
+let bloqueoPantalla = null, estadoPantalla = 'no disponible en este navegador';
+async function mantenerPantalla() {
+  if (!('wakeLock' in navigator) || bloqueoPantalla || document.visibilityState !== 'visible') return;
+  try {
+    bloqueoPantalla = await navigator.wakeLock.request('screen');
+    estadoPantalla = 'sí';
+    bloqueoPantalla.addEventListener('release', () => { bloqueoPantalla = null; estadoPantalla = 'desactivada'; pintarDatos(); });
+  } catch (e) {
+    estadoPantalla = 'no (' + (e.name || 'error') + ')';
+  }
+  pintarDatos();
+}
 
 // Al recargar esta misma pestaña (por ejemplo, con el aviso de versión nueva) vuelve a entrar solo.
 // Va en sessionStorage, que es de la pestaña: al abrir el QR en otra pestaña se sigue pidiendo el nombre.
@@ -228,6 +244,7 @@ function recibir(msg) {
       document.getElementById('datos').classList.remove('oculto');
       estado('Conectado como ' + msg.nombre + '.');
       marcarSalaDeEstaPestana(sala);
+      mantenerPantalla();
       break;
     case 'estado':
       pos = msg; pintarDatos();
@@ -267,6 +284,7 @@ function pintarDatos() {
   if (callado >= 5) lineas.push('Sin respuesta del tablero desde hace ' + callado + ' s');
   lineas.push('Conexión: ' + (via || '…'));
   lineas.push('Cortes: ' + cortes + (ultimoCorte ? ' (último: ' + ultimoCorte + ')' : ''));
+  lineas.push('Pantalla siempre encendida: ' + estadoPantalla);
   document.getElementById('datos').textContent = lineas.join('\n');
 }
 setInterval(pintarDatos, 1000);
@@ -304,6 +322,7 @@ setInterval(() => {
 document.querySelectorAll('#cruceta button').forEach(b => {
   b.addEventListener('pointerdown', e => {
     e.preventDefault();
+    mantenerPantalla();
     enviar({ tipo: 'mover', dx: +b.dataset.dx, dy: +b.dataset.dy });
   });
 });
@@ -318,9 +337,10 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
   // Al desbloquear se da un margen: el último pong es de antes de bloquear y aún no ha habido ping nuevo.
   ultimoPong = performance.now();
+  if (sala) mantenerPantalla();   // el bloqueo de pantalla se suelta al ocultarse la página
   if (sala && !rechazado && !(conn && conn.open)) conectar();
 });
 </script>
-<script src="../version.js?v=15"></script>
+<script src="../version.js?v=16"></script>
 </body>
 </html>

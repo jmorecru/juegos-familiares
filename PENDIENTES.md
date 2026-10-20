@@ -44,6 +44,9 @@
   cortes al suspenderse. En la v14, el tablero cierra conexiones con 30 s sin mensajes y el mando no da falsas alarmas
   al descongelarse (probado en Chrome). Con la v13, a los 15 min, corte simultáneo de los tres mandos y recuperación
   automática (posible wifi del Fire Stick o router). Falta repetir con la v14 y, si se repite, mirar el registro completo.
+- Sin tocarlos, los mandos se bloquean o suspenden solos y el tablero los da por desconectados a los 30 s.
+  Desde la v16, el mando pide mantener la pantalla encendida. Falta comprobar en casa que lo consigue en el
+  iPhone (Safari 16.4+), la Fire HD 8 y la tablet Android, y que el jugador ya no se desconecta.
 - Bloquear y desbloquear el iPhone no corta la conexión. Latencia entre 10 y 200 ms, normalmente por debajo de 100.
 - Las pruebas de red en Chrome sin interfaz necesitan tiempo real, no `--virtual-time-budget`, que impide
   que PeerJS conecte. El resultado se lee haciendo que la página pida `/resultado?…` al servidor local.

@@ -64,7 +64,12 @@
   li { display: flex; align-items: center; gap: 10px; }
   .punto { width: 16px; height: 16px; border-radius: 50%; flex: none; }
   li .est { margin-left: auto; color: var(--tenue); font-size: .85rem; }
-  #log { font-size: .75rem; color: var(--tenue); margin-top: auto; min-height: 6em; cursor: pointer; }
+  #verRegistro {
+    margin-top: auto; align-self: flex-start; cursor: pointer;
+    font: inherit; font-size: .8rem; padding: 4px 10px; border-radius: 6px;
+    border: 1px solid var(--tenue); background: transparent; color: var(--tinta);
+  }
+  #log { font-size: .75rem; color: var(--tenue); min-height: 6em; cursor: pointer; }
   #log p, #logCompleto p { margin: 2px 0; }
   /* Registro completo: se abre al pulsar sobre el registro y se cierra con otro clic. */
   #registro {
@@ -112,6 +117,7 @@
     <p class="ayuda" id="pantalla">Pantalla siempre encendida: comprobando…</p>
     <p class="ayuda" id="modulos">Módulos ES: no</p>
     <p class="ayuda" id="medidas"></p>
+    <button id="verRegistro" type="button">Ver registro completo</button>
     <div id="log" title="Pulsa para ver el registro completo"></div>
   </aside>
   <div id="registro" class="oculto">
@@ -157,7 +163,9 @@ function log(txt) {
     }
   }
 }
-document.getElementById('log').addEventListener('click', () => document.getElementById('registro').classList.remove('oculto'));
+for (const id of ['log', 'verRegistro']) {
+  document.getElementById(id).addEventListener('click', () => document.getElementById('registro').classList.remove('oculto'));
+}
 document.getElementById('registro').addEventListener('click', () => document.getElementById('registro').classList.add('oculto'));
 function guardar(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 function leer(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
@@ -416,6 +424,6 @@ abrirSala(leer('sala') || nuevoCodigo());
 </script>
 <!-- Fase 0: la Fase 1 usará módulos ES; si este navegador no los ejecuta, el texto se queda en "no". -->
 <script type="module">document.getElementById('modulos').textContent = 'Módulos ES: sí';</script>
-<script src="../version.js?v=15"></script>
+<script src="../version.js?v=16"></script>
 </body>
 </html>

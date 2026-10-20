@@ -113,7 +113,11 @@ Tipografías de Google Fonts: Fredoka (interfaz) y Grenze Gotisch (título).
 - El tablero da por desconectada una conexión que pasa 30 s sin mensajes (los mandos hacen ping cada 2 s).
   Lo hace la Fire HD 8 al suspenderse: deja la conexión muerta sin cerrarla. 30 s para que un bloqueo corto
   del móvil no cuente como corte.
-- El registro del tablero guarda los 50 últimos eventos; al pulsar sobre él se abre entero.
+- El registro del tablero guarda los 50 últimos eventos; se abre entero con el botón «Ver registro completo»
+  o pulsando sobre él.
+- El mando también pide mantener la pantalla encendida (Wake Lock): al entrar, al tocar la cruceta y al
+  volver a la pestaña. Si no, durante la partida el móvil se bloquea solo y el jugador se desconecta.
+  El mando muestra «Pantalla siempre encendida: sí/no».
 - Al recargar la misma pestaña, el mando vuelve a entrar solo: la sala va en sessionStorage.
   En una pestaña nueva se sigue pidiendo el nombre.
 
@@ -175,6 +179,12 @@ Incidencias (Fire Stick, 2026-10-20, v13, iPhone + Fire HD 8 + tablet Android):
   volvieron a entrar solos** y siguieron funcionando. Que caigan todos juntos apunta a algo común, como la
   wifi del Fire Stick (¿ahorro de energía tras un rato sin usar su mando?) o el router, no a cada dispositivo.
   Si se repite con la v14, abrir el registro completo y anotar la secuencia y la hora.
+- Con la v15, sin tocar los mandos, se desconectaron los tres: primero el iPhone y minutos después las dos
+  tablets. En el registro: «Eduardo: 30 s sin noticias, se da por desconectado». No es un fallo: se
+  bloquearon o suspendieron solos y el tablero los dio por desconectados, conservando su ficha.
+  Para la partida real es un problema, porque cada jugador pasa minutos sin tocar su móvil. Por eso, desde
+  la v16 el mando pide mantener la pantalla encendida. Además, el registro no se podía desplazar y no
+  había nada que indicara que se abre pulsando: desde la v16 hay un botón «Ver registro completo».
 
 ## 4. Restricciones técnicas
 
