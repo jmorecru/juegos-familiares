@@ -58,6 +58,10 @@
   }
   .arriba { grid-area: 1 / 2; } .izq { grid-area: 2 / 1; } .der { grid-area: 2 / 3; } .abajo { grid-area: 3 / 2; }
   #datos { color: var(--tenue); font-size: .95rem; margin: 0; white-space: pre-line; }
+  #avisoPantalla {
+    margin: 0; max-width: 320px; padding: 12px 16px; border-radius: 12px;
+    background: #E0A000; color: var(--noche); font-size: 1.2rem; font-weight: 600;
+  }
 </style>
 </head>
 <body>
@@ -81,6 +85,7 @@
     <button class="abajo" data-dx="0" data-dy="1" aria-label="Abajo">▼</button>
   </div>
 
+  <p id="avisoPantalla" class="oculto">Toca la pantalla para que no se apague</p>
   <p id="datos" class="oculto"></p>
   <p id="estado"></p>
 
@@ -122,16 +127,34 @@ document.getElementById('entrada').addEventListener('submit', e => {
 // Pantalla siempre encendida mientras se juega: si el móvil se bloquea solo, Safari o Silk congelan la página
 // y el jugador se desconecta. Se pide al entrar (gesto del usuario), al tocar la cruceta y al volver a la pestaña.
 let bloqueoPantalla = null, estadoPantalla = 'no disponible en este navegador';
+// Safari solo la concede justo después de un gesto, y para el tacto cuenta al levantar el dedo
+// (pointerup/touchend/click), no al apoyarlo: por eso se reintenta con cualquier toque en la página.
+// Mientras no esté concedida y se esté jugando, se muestra un aviso para que alguien toque la pantalla.
+let pidiendoPantalla = false;
 async function mantenerPantalla() {
-  if (!('wakeLock' in navigator) || bloqueoPantalla || document.visibilityState !== 'visible') return;
+  if (!('wakeLock' in navigator) || bloqueoPantalla || pidiendoPantalla || document.visibilityState !== 'visible') return;
+  pidiendoPantalla = true;
   try {
     bloqueoPantalla = await navigator.wakeLock.request('screen');
     estadoPantalla = 'sí';
-    bloqueoPantalla.addEventListener('release', () => { bloqueoPantalla = null; estadoPantalla = 'desactivada'; pintarDatos(); });
+    bloqueoPantalla.addEventListener('release', () => {
+      bloqueoPantalla = null; estadoPantalla = 'desactivada'; pintarAvisoPantalla(); pintarDatos();
+    });
   } catch (e) {
     estadoPantalla = 'no (' + (e.name || 'error') + ')';
+  } finally {
+    pidiendoPantalla = false;
   }
+  pintarAvisoPantalla();
   pintarDatos();
+}
+function pintarAvisoPantalla() {
+  const jugando = !document.getElementById('cruceta').classList.contains('oculto');
+  const falta = 'wakeLock' in navigator && !bloqueoPantalla && jugando;
+  document.getElementById('avisoPantalla').classList.toggle('oculto', !falta);
+}
+for (const ev of ['pointerup', 'touchend', 'click']) {
+  document.addEventListener(ev, () => { if (sala) mantenerPantalla(); }, { passive: true });
 }
 
 // Al recargar esta misma pestaña (por ejemplo, con el aviso de versión nueva) vuelve a entrar solo.
@@ -341,6 +364,6 @@ document.addEventListener('visibilitychange', () => {
   if (sala && !rechazado && !(conn && conn.open)) conectar();
 });
 </script>
-<script src="../version.js?v=17"></script>
+<script src="../version.js?v=18"></script>
 </body>
 </html>

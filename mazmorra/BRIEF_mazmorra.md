@@ -118,6 +118,9 @@ Tipografías de Google Fonts: Fredoka (interfaz) y Grenze Gotisch (título).
 - El mando también pide mantener la pantalla encendida (Wake Lock): al entrar, al tocar la cruceta y al
   volver a la pestaña. Si no, durante la partida el móvil se bloquea solo y el jugador se desconecta.
   El mando muestra «Pantalla siempre encendida: sí/no».
+  Safari (iPhone) solo la concede justo después de un toque, y al entrar solo tras recargar no lo hay
+  (`NotAllowedError`). Por eso se reintenta con cualquier toque en la página (`pointerup`/`touchend`/`click`)
+  y, mientras falte, el mando muestra el aviso «Toca la pantalla para que no se apague».
 - Al recargar la misma pestaña, el mando vuelve a entrar solo: la sala va en sessionStorage.
   En una pestaña nueva se sigue pidiendo el nombre.
 
