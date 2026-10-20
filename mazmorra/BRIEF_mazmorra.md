@@ -130,7 +130,8 @@ En curso. Lista completa en el `README.md` de esta carpeta.
 | Latencia que marcan los móviles (ms)           | 10–200, normalmente < 100                 |                               |
 | Reconexión al bloquear y desbloquear un móvil  | OK (iPhone, no se perdió la conexión)     |                               |
 | Reconexión al recargar el tablero              |                                           |                               |
-| Pantalla encendida 15 minutos                  | «Pantalla siempre encendida: sí» (v13); prueba de 15 min con 3 mandos en curso |  |
+| Pantalla encendida 15 minutos                  | Sí: «Pantalla siempre encendida: sí» y no se suspendió (v13, 3 mandos) |  |
+| Tres mandos a la vez                           | OK (iPhone, Fire HD 8, tablet Android); un corte simultáneo de todos, recuperado solo (v13) | |
 | «Módulos ES: sí»                               | Sí (v13)                                  |                               |
 | Medidas                                        | 960×540 CSS, escala 4 (Fire TV Stick 4K), casilla 56 px |                 |
 | Se ve bien desde la mesa / el sofá             | Tablero, casillas e indicador de jugador bien |                           |
@@ -169,6 +170,11 @@ Incidencias (Fire Stick, 2026-10-20, v13, iPhone + Fire HD 8 + tablet Android):
   movía hasta recargar. Causa probable: el tablero seguía dando por buena la conexión muerta de antes de
   suspenderse. Desde la v14, el tablero cierra las conexiones con 30 s sin mensajes y el registro dice
   «vuelve a entrar; se cierra su conexión anterior». Probado en Chrome con un mando congelado.
+- Prueba de 15 minutos con la v13 y tres mandos. La tele siguió encendida. Hacia el final, **todos los mandos
+  se cortaron a la vez** («error de conexión»; en el registro, `disconnected` para cada jugador) y **todos
+  volvieron a entrar solos** y siguieron funcionando. Que caigan todos juntos apunta a algo común, como la
+  wifi del Fire Stick (¿ahorro de energía tras un rato sin usar su mando?) o el router, no a cada dispositivo.
+  Si se repite con la v14, abrir el registro completo y anotar la secuencia y la hora.
 
 ## 4. Restricciones técnicas
 
