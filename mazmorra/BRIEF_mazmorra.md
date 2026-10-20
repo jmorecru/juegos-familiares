@@ -223,14 +223,16 @@ Incidencias (Fire Stick, 2026-10-20, v13, iPhone + Fire HD 8 + tablet Android):
 **Fase 0 – Validar la prueba de humo.** Hecha (2026-10-20, v16): Fire TV Stick 4K como tablero, WebRTC
 directo por la wifi y tres mandos estables. Resultados en la sección 3.
 
-**Fase 1 – Reorganizar en módulos.** Hecha (2026-10-20). Estructura en la sección 3 y en el `README.md`.
+**Fase 1 – Reorganizar en módulos.** Hecha y validada en casa con la v25 (2026-10-20). Estructura en la sección 3
+y en el `README.md`.
 Además de lo previsto:
 - el diagnóstico queda detrás de `?diag=1`;
 - las claves de localStorage llevan prefijo;
 - un mapa de importaciones con `?v=N` evita mezclar módulos guardados de versiones distintas;
 - los fallos de la Fase 0 son ahora pruebas automáticas (`pruebas/red.html`).
 
-Falta repetir en casa la lista de comprobación del `README.md` con la versión en módulos.
+En casa, con la v25, la lista de comprobación del `README.md` sale correcta en el Fire Stick, el iPhone, la Fire HD 8
+y la tablet Android.
 
 Incidencia con la v23 (2026-10-20): el iPhone no entraba («la conexión directa no se completa»), con el mismo
 código de sala y las tablets dentro. Recargando el mando entró sin problema, con el mismo código (v24 idéntica).
