@@ -26,15 +26,15 @@ Antes de escribir código, lee el brief completo y propón un plan para la fase 
   es el selector de juegos de la familia. Tablero publicado en
   <https://jmorecru.github.io/juegos-familiares/mazmorra/host.html>.
 - **Origen compartido**: todos los juegos se sirven desde `jmorecru.github.io`, así que comparten
-  localStorage. Las claves de la mazmorra deben llevar el prefijo `mazmorra.` (pendiente para la Fase 1;
-  la prueba de humo aún usa `sala`, `nombre`, `jugadorId` y `ultimaSala`).
+  localStorage. Las claves de la mazmorra llevan el prefijo `mazmorra.` (`js/comun/almacen.js`); las de la
+  prueba de humo (`sala`, `nombre`, `jugadorId`, `ultimaSala`) se pasan solas al nombre nuevo la primera vez.
 - **El tablero es el servidor**: la página `host.html`, abierta en la pantalla compartida,
   guarda el estado de la partida y es la única fuente de verdad.
 - **Conexión**: WebRTC con PeerJS. El servidor público de PeerJS solo se usa para el emparejamiento
   inicial; los datos de la partida viajan directamente entre dispositivos por la wifi de casa.
 - **Unirse a la sala**: el tablero muestra un código de 4 letras y un QR que abre `mando.html?sala=XXXX`.
-- **Pantalla compartida**: Fire TV Stick (navegador Silk) o una tablet grande en el centro de la mesa.
-  Pendiente de decidir según los resultados de la prueba de humo. El tablero debe adaptarse a ambas.
+- **Pantalla compartida**: el Fire TV Stick 4K de la tele (navegador Silk), validado en la Fase 0. Una tablet
+  como tablero queda como opción para jugar sin tele; el tablero ya se adapta a vertical.
 - **Plan B** si WebRTC falla en casa: un pequeño servidor local (Node o Spring Boot) en un portátil,
   manteniendo el mismo protocolo de mensajes.
 
@@ -55,16 +55,23 @@ Antes de escribir código, lee el brief completo y propón un plan para la fase 
    para poder probarla de forma aislada y reutilizarla con la IA.
 4. **Datos fuera del código**: misiones, mapas, monstruos y objetos en ficheros JSON.
 
-## 3. Estado actual: prueba de humo
+## 3. Estado actual: base técnica en módulos (Fase 1)
 
-Objetivo: validar la infraestructura en casa antes de programar juego. **Probada y cerrada el 2026-10-20 (v16).**
+La prueba de humo (Fase 0) se validó en casa y se cerró el 2026-10-20 con la v16. En la Fase 1 (v19–v23) el
+código se ha dividido en módulos ES, con el mismo comportamiento y el mismo protocolo. Todavía no hay reglas de
+juego: fichas que se mueven por una sala de pruebas de 12×8.
 
-| Fichero      | Función                                                                       |
-|--------------|-------------------------------------------------------------------------------|
-| `index.html` | Portada con dos botones: abrir el tablero o unirse como jugador               |
-| `host.html`  | Tablero 12×8 con muros, código de sala + QR, validación de movimientos, registro de eventos visible, Wake Lock, aviso de si el navegador ejecuta módulos ES |
-| `mando.html` | Cruceta, latencia en ms, vibración al chocar, reconexión automática           |
-| `README.md`  | Publicación en GitHub Pages y lista de comprobación de la prueba              |
+| Pieza                    | Función                                                                    |
+|--------------------------|----------------------------------------------------------------------------|
+| `host.html`, `mando.html`| Solo HTML, mapa de importaciones y carga del módulo principal              |
+| `js/red/`                | `sala.js` (tablero) y `cliente.js` (mando): conexión, reconexión y vigilancia; `protocolo.js` con plazos y limpieza de mensajes |
+| `js/motor/partida.js`    | Estado y reglas sin pantalla ni red: `crearPartida`, `unir`, `aplicar`, `vistaPara` |
+| `js/tablero/`, `js/mando/` | Interfaz: dibujo del tablero, registro de eventos, cruceta              |
+| `js/comun/`              | Almacenamiento con prefijo, pantalla siempre encendida, modo `?diag=1`     |
+| `datos/mapas/prueba.json`| La sala de pruebas                                                         |
+| `pruebas/`               | `motor.html` (15 pruebas) y `red.html` (7 escenarios de la Fase 0, ~2 min) |
+
+Detalle de la estructura, del modo diagnóstico y de cómo pasar las pruebas en el `README.md` de esta carpeta.
 
 Dependencias por CDN con versión fija: `peerjs@1.5.4` (jsDelivr) y `qrcodejs 1.0.0` (cdnjs).
 Tipografías de Google Fonts: Fredoka (interfaz) y Grenze Gotisch (título).
@@ -210,21 +217,17 @@ Incidencias (Fire Stick, 2026-10-20, v13, iPhone + Fire HD 8 + tablet Android):
 
 ## 5. Hoja de ruta propuesta
 
-**Fase 0 – Validar la prueba de humo** (la hace el usuario en casa).
-Resultado esperado: latencia, estabilidad con 3 móviles y comparativa Fire Stick frente a tablet.
+**Fase 0 – Validar la prueba de humo.** Hecha (2026-10-20, v16): Fire TV Stick 4K como tablero, WebRTC
+directo por la wifi y tres mandos estables. Resultados en la sección 3.
 
-**Fase 1 – Reorganizar en módulos.** Estructura orientativa, dentro de `mazmorra/`:
+**Fase 1 – Reorganizar en módulos.** Hecha (2026-10-20). Estructura en la sección 3 y en el `README.md`.
+Además de lo previsto:
+- el diagnóstico queda detrás de `?diag=1`;
+- las claves de localStorage llevan prefijo;
+- un mapa de importaciones con `?v=N` evita mezclar módulos guardados de versiones distintas;
+- los fallos de la Fase 0 son ahora pruebas automáticas (`pruebas/red.html`).
 
-```
-mazmorra/index.html
-mazmorra/host.html
-mazmorra/mando.html
-mazmorra/js/red/        conexión PeerJS, sala, reconexión, protocolo
-mazmorra/js/motor/      estado de partida y reglas puras (sin DOM)
-mazmorra/js/tablero/    renderizado del tablero
-mazmorra/js/mando/      interfaz del mando
-mazmorra/datos/         misiones, monstruos y objetos en JSON
-```
+Falta repetir en casa la lista de comprobación del `README.md` con la versión en módulos.
 
 **Fase 2 – Reglas básicas**: turnos, tirada de movimiento, combate cuerpo a cuerpo, puntos de vida,
 fin de partida. Héroes con atributos y nombres originales.
@@ -241,7 +244,6 @@ ni el arte de HeroQuest. Con ese tamaño, en el Fire Stick hará falta zoom sobr
 
 ## 6. Preguntas abiertas
 
-- ¿Fire Stick, tablet o ambos como tablero? (depende de la Fase 0)
 - Número y tipo de héroes, y nivel de complejidad de las reglas para que jueguen los niños.
 - ¿Guardar el estado de la partida en el propio tablero (localStorage/IndexedDB) es suficiente?
 
@@ -252,5 +254,8 @@ ni el arte de HeroQuest. Con ese tamaño, en el Fire Stick hará falta zoom sobr
 - Cambios pequeños y verificables, con commits descriptivos.
 - Mantener actualizado este brief y el README cuando cambie una decisión o el protocolo.
 - Para probar en local: servir la raíz del repositorio con `python -m http.server 8000` (sin npm) y abrir
-  `localhost:8000/mazmorra/host.html` y `localhost:8000/mazmorra/mando.html` en dos pestañas
+  `localhost:8000/mazmorra/host.html?diag=1` y `localhost:8000/mazmorra/mando.html?diag=1` en dos pestañas
   (contexto seguro). Hace falta internet para el emparejamiento de PeerJS.
+- Antes de publicar un cambio, pasar `pruebas/motor.html` y, si toca `js/red/`, `pruebas/red.html`. Cada fallo
+  nuevo que aparezca en casa se convierte en un escenario de `pruebas/red.html`.
+- Al añadir un módulo, añadirlo al mapa de importaciones de `host.html` y `mando.html`.

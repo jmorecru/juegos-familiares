@@ -1,12 +1,13 @@
 # Pendientes
 
 ## Abiertas
-- **Mazmorra – Fase 1: reorganizar en módulos ES** (plan propuesto el 2026-10-20, pendiente de confirmar).
-  Por qué: separar red, motor de reglas y dibujo para poder probar las reglas solas y reutilizarlas con la IA.
-  Incluye:
-  - poner el prefijo `mazmorra.` a las claves de localStorage, que ahora comparte con los demás juegos;
-  - dejar el diagnóstico detrás de `?diag=1`;
-  - convertir las pruebas de red hechas a mano en páginas de prueba del repositorio.
+- **Mazmorra – Probar en casa la versión en módulos (v23).** Por qué: la Fase 1 cambia cómo se carga todo
+  (módulos, mapa de importaciones, prefijo de claves). Está probada en Chrome, pero no en Silk, el iPhone ni la
+  Fire HD 8. Lista corta en `mazmorra/README.md` («Lista de comprobación en casa»).
+  Comprobar también que el tablero conserva su código de sala y los mandos su nombre (paso de claves).
+- **Mazmorra – Fase 2: reglas básicas.** Por qué: es la siguiente fase de la hoja de ruta (turnos, tirada de
+  movimiento, combate, puntos de vida, fin de partida). Antes hay que decidir con la familia cuántos héroes, de
+  qué tipo y qué reglas puede seguir un niño de 6 años; luego se propone el plan.
 - **Mazmorra – Tablet como tablero** (opcional). Por qué: la Fase 0 ha validado el Fire Stick 4K; probar una
   tablet como tablero solo hace falta si se quiere jugar sin tele. El tablero ya se adapta a vertical.
 - **Mazmorra – Tableros por aventura** (a futuro; encaja con las Fases 1 y 5). Por qué: cada aventura tiene
@@ -33,6 +34,12 @@
   - 15 minutos sin tocar los mandos: ninguno se bloquea ni se desconecta.
 
   Detalle y fallos corregidos por el camino en la sección «Resultados de la Fase 0» de `mazmorra/BRIEF_mazmorra.md`.
+- **Fase 1 hecha (2026-10-20, v19–v23)**: la mazmorra está dividida en módulos ES (`mazmorra/js/`), con el mapa en
+  JSON, el diagnóstico detrás de `?diag=1` y claves con prefijo `mazmorra.` (las antiguas se pasan solas).
+  Comprobado en Chrome: `pruebas/motor.html` pasa sus 15 pruebas y `pruebas/red.html` sus 7 escenarios.
+  El navegador pide todos los módulos, estilos y el mapa con `?v=N`.
+- El hook versiona `src`/`href` propios y los valores del mapa de importaciones, y no toca las claves del mapa ni
+  las direcciones externas (probado en una copia del repositorio).
 - Indicador de versión: el hook escribe el número y la fecha en cada commit, y `version.js?v=N` en las páginas.
   Con un servidor que simula una versión publicada más nueva, la página muestra el aviso amarillo para recargar.
 - Las pruebas de red en Chrome sin interfaz necesitan tiempo real, no `--virtual-time-budget`, que impide
