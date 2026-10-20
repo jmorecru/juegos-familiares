@@ -4,65 +4,32 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="theme-color" content="#1C2140">
-<title>Mando – prueba de humo</title>
+<title>Mazmorra – mando</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Grenze+Gotisch:wght@600&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --noche: #1C2140;
-    --noche2: #262C52;
-    --tinta: #F2E9D8;
-    --tenue: #A9A4C4;
-    --mio: #888;
+<link rel="stylesheet" href="css/comun.css?v=21">
+<link rel="stylesheet" href="css/mando.css?v=21">
+<!-- Cada módulo con el número de versión (lo pone el hook): así el navegador no mezcla ficheros guardados
+     de versiones distintas. Al añadir un módulo, añádelo aquí y en host.html. -->
+<script type="importmap">
+{
+  "imports": {
+    "./js/comun/almacen.js": "./js/comun/almacen.js?v=21",
+    "./js/comun/diagnostico.js": "./js/comun/diagnostico.js?v=21",
+    "./js/comun/pantalla.js": "./js/comun/pantalla.js?v=21",
+    "./js/red/protocolo.js": "./js/red/protocolo.js?v=21",
+    "./js/red/ice.js": "./js/red/ice.js?v=21",
+    "./js/red/sala.js": "./js/red/sala.js?v=21",
+    "./js/red/cliente.js": "./js/red/cliente.js?v=21",
+    "./js/motor/partida.js": "./js/motor/partida.js?v=21",
+    "./js/tablero/dibujo.js": "./js/tablero/dibujo.js?v=21",
+    "./js/tablero/registro.js": "./js/tablero/registro.js?v=21",
+    "./js/tablero/main.js": "./js/tablero/main.js?v=21",
+    "./js/mando/main.js": "./js/mando/main.js?v=21"
   }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { height: 100%; margin: 0; overscroll-behavior: none; }
-  body {
-    background: var(--noche); color: var(--tinta);
-    font-family: 'Fredoka', system-ui, sans-serif;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 24px; gap: 20px; text-align: center;
-    user-select: none; -webkit-user-select: none; touch-action: manipulation;
-  }
-  h1 { font-family: 'Grenze Gotisch', serif; font-weight: 600; font-size: 2.4rem; margin: 0; }
-  .oculto { display: none !important; }
-  form { display: flex; flex-direction: column; gap: 14px; width: min(320px, 100%); }
-  label { display: flex; flex-direction: column; gap: 6px; text-align: left; color: var(--tenue); }
-  input {
-    font: inherit; font-size: 1.3rem; padding: 12px 14px; border-radius: 10px;
-    border: 2px solid var(--noche2); background: var(--noche2); color: var(--tinta);
-  }
-  input:focus { outline: none; border-color: var(--tenue); }
-  #codigo { text-transform: uppercase; letter-spacing: .15em; }
-  button { font: inherit; cursor: pointer; }
-  .principal {
-    font-size: 1.3rem; font-weight: 600; padding: 14px; border: 0; border-radius: 10px;
-    background: var(--tinta); color: var(--noche);
-  }
-  #estado { color: var(--tenue); min-height: 1.4em; margin: 0; max-width: 320px; }
-  #cruceta {
-    display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr);
-    width: min(78vw, 360px); aspect-ratio: 1; gap: 8px;
-  }
-  #cruceta button {
-    border: 0; border-radius: 16px; background: var(--noche2); color: var(--tinta);
-    font-size: 2.4rem;
-  }
-  #cruceta button:active { background: var(--mio); }
-  #cruceta.choque button { background: #6B2430; }
-  #ficha {
-    grid-area: 2 / 2; border-radius: 50%; background: var(--mio);
-    border: 4px solid rgba(255,255,255,.85);
-    display: grid; place-items: center; font-size: 2.2rem; font-weight: 600; color: #fff;
-  }
-  .arriba { grid-area: 1 / 2; } .izq { grid-area: 2 / 1; } .der { grid-area: 2 / 3; } .abajo { grid-area: 3 / 2; }
-  #datos { color: var(--tenue); font-size: .95rem; margin: 0; white-space: pre-line; }
-  #avisoPantalla {
-    margin: 0; max-width: 320px; padding: 12px 16px; border-radius: 12px;
-    background: #E0A000; color: var(--noche); font-size: 1.2rem; font-weight: 600;
-  }
-</style>
+}
+</script>
 </head>
 <body>
   <h1>Mazmorra</h1>
@@ -86,284 +53,12 @@
   </div>
 
   <p id="avisoPantalla" class="oculto">Toca la pantalla para que no se apague</p>
-  <p id="datos" class="oculto"></p>
+  <p id="datos" class="oculto solo-diag"></p>
   <p id="estado"></p>
 
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script>
-const PREFIJO = 'mazmorra-familia-';
-
-let peer = null, conn = null, sala = '', nombre = '';
-let reintento = null, vigilante = null, latencia = null, pos = null, rechazado = false;
-// true cuando el tablero avisa de que este jugador se ha abierto en otra pestaña o dispositivo: deja de reconectar.
-let sustituido = false;
-// Diagnóstico de la Fase 0: por dónde va la conexión y cuántas veces se ha cortado.
-let via = null, cortes = 0, ultimoCorte = '', ultimoPong = 0;
-
-function guardar(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
-function leer(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
-function estado(t) { document.getElementById('estado').textContent = t; }
-
-const jugadorId = leer('jugadorId') || (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2));
-guardar('jugadorId', jugadorId);
-
-/* ---------- entrada ---------- */
-const params = new URLSearchParams(location.search);
-document.getElementById('codigo').value = (params.get('sala') || leer('ultimaSala') || '').toUpperCase();
-document.getElementById('nombre').value = leer('nombre') || '';
-
-document.getElementById('entrada').addEventListener('submit', e => {
-  e.preventDefault();
-  nombre = document.getElementById('nombre').value.trim();
-  sala = document.getElementById('codigo').value.trim().toUpperCase();
-  if (!nombre) { estado('Escribe tu nombre para entrar.'); return; }
-  if (!/^[A-Z]{4}$/.test(sala)) { estado('El código de sala tiene 4 letras. Lo ves en el tablero.'); return; }
-  guardar('nombre', nombre);
-  guardar('ultimaSala', sala);
-  mantenerPantalla();
-  conectar();
-});
-
-// Pantalla siempre encendida mientras se juega: si el móvil se bloquea solo, Safari o Silk congelan la página
-// y el jugador se desconecta. Se pide al entrar (gesto del usuario), al tocar la cruceta y al volver a la pestaña.
-let bloqueoPantalla = null, estadoPantalla = 'no disponible en este navegador';
-// Safari solo la concede justo después de un gesto, y para el tacto cuenta al levantar el dedo
-// (pointerup/touchend/click), no al apoyarlo: por eso se reintenta con cualquier toque en la página.
-// Mientras no esté concedida y se esté jugando, se muestra un aviso para que alguien toque la pantalla.
-let pidiendoPantalla = false;
-async function mantenerPantalla() {
-  if (!('wakeLock' in navigator) || bloqueoPantalla || pidiendoPantalla || document.visibilityState !== 'visible') return;
-  pidiendoPantalla = true;
-  try {
-    bloqueoPantalla = await navigator.wakeLock.request('screen');
-    estadoPantalla = 'sí';
-    bloqueoPantalla.addEventListener('release', () => {
-      bloqueoPantalla = null; estadoPantalla = 'desactivada'; pintarAvisoPantalla(); pintarDatos();
-    });
-  } catch (e) {
-    estadoPantalla = 'no (' + (e.name || 'error') + ')';
-  } finally {
-    pidiendoPantalla = false;
-  }
-  pintarAvisoPantalla();
-  pintarDatos();
-}
-function pintarAvisoPantalla() {
-  const jugando = !document.getElementById('cruceta').classList.contains('oculto');
-  const falta = 'wakeLock' in navigator && !bloqueoPantalla && jugando;
-  document.getElementById('avisoPantalla').classList.toggle('oculto', !falta);
-}
-for (const ev of ['pointerup', 'touchend', 'click']) {
-  document.addEventListener(ev, () => { if (sala) mantenerPantalla(); }, { passive: true });
-}
-
-// Al recargar esta misma pestaña (por ejemplo, con el aviso de versión nueva) vuelve a entrar solo.
-// Va en sessionStorage, que es de la pestaña: al abrir el QR en otra pestaña se sigue pidiendo el nombre.
-function salaDeEstaPestana() { try { return sessionStorage.getItem('mazmorra.salaActiva'); } catch (e) { return null; } }
-function marcarSalaDeEstaPestana(s) { try { sessionStorage.setItem('mazmorra.salaActiva', s); } catch (e) {} }
-if (salaDeEstaPestana() && document.getElementById('nombre').value) {
-  document.getElementById('codigo').value = salaDeEstaPestana();
-  const form = document.getElementById('entrada');
-  if (form.requestSubmit) form.requestSubmit(); else form.dispatchEvent(new Event('submit', { cancelable: true }));
-}
-
-/* ---------- red ---------- */
-function conectar() {
-  clearTimeout(reintento);
-  if (rechazado || sustituido) return;
-  estado('Conectando con la sala ' + sala + '…');
-  if (!peer || peer.destroyed) {
-    peer = new Peer({ debug: 1 });
-    // 'open' se repite cada vez que vuelve el servidor de emparejamiento: no tocar una conexión que funciona.
-    peer.on('open', () => { if (!(conn && conn.open)) abrirConexion(); });
-    peer.on('disconnected', () => { setTimeout(() => { if (!peer.destroyed) peer.reconnect(); }, 1500); });
-    peer.on('error', err => {
-      // Los errores del servidor de emparejamiento no afectan a una conexión ya abierta con el tablero.
-      if (conn && conn.open) return;
-      if (err.type === 'peer-unavailable') estado('No encuentro la sala ' + sala + '. Comprueba el código en el tablero.');
-      else estado('Problema de conexión (' + err.type + '). Reintentando…');
-      programarReintento();
-    });
-  } else if (peer.open) {
-    abrirConexion();
-  }
-}
-
-function abrirConexion() {
-  // Se suelta antes de cerrarla: PeerJS emite 'close' en el acto y, si siguiera siendo la actual,
-  // contaría como corte y programaría otro reintento que volvería a cerrar la nueva (bucle de cortes).
-  const vieja = conn;
-  conn = null;
-  if (vieja) { try { vieja.close(); } catch (e) {} }
-  const esta = peer.connect(PREFIJO + sala, { reliable: true });
-  conn = esta;
-  // PeerJS borra peerConnection al cerrar: se guarda el último estado ICE para el diagnóstico.
-  esta.ultimoIce = 'nuevo';
-  const pc = esta.peerConnection;
-  if (pc) pc.addEventListener('iceconnectionstatechange', () => { esta.ultimoIce = pc.iceConnectionState; });
-  clearTimeout(vigilante);
-  vigilante = setTimeout(() => {
-    if (!esta.open) {
-      estado('La conexión directa no se completa. Comprueba que el móvil y el tablero están en la misma wifi (las redes de invitados suelen bloquearlo).');
-      programarReintento();
-    }
-  }, 10000);
-  esta.on('open', () => {
-    clearTimeout(vigilante);
-    ultimoPong = performance.now();   // el plazo de "sin respuesta" cuenta desde que se abre
-    esta.send({ tipo: 'hola', id: jugadorId, nombre });
-    esta.holaEnviado = performance.now();
-    setTimeout(() => tipoConexion(esta.peerConnection).then(t => { if (esta === conn) { via = t; pintarDatos(); } }), 1500);
-  });
-  // Solo cuenta lo que llega por la conexión actual, no por una anterior que aún no se haya cerrado del todo.
-  esta.on('data', msg => { if (esta === conn) recibir(msg); });
-  esta.on('close', () => { if (esta === conn) perdida('cerrada, ICE ' + estadoIce(esta)); });
-  esta.on('error', err => { if (esta === conn) perdida('error ' + (err && err.type) + ', ICE ' + estadoIce(esta)); });
-}
-
-function estadoIce(c) { return c.peerConnection ? c.peerConnection.iceConnectionState : (c.ultimoIce || 'sin datos'); }
-
-// Tipo de candidato ICE en uso: host = directa por la wifi, srflx = a través del router, relay = servidor externo.
-async function tipoConexion(pc) {
-  if (!pc || !pc.getStats) return 'desconocida';
-  try {
-    const stats = await pc.getStats();
-    let par = null;
-    stats.forEach(r => { if (r.type === 'transport' && r.selectedCandidatePairId) par = stats.get(r.selectedCandidatePairId); });
-    if (!par) stats.forEach(r => { if (r.type === 'candidate-pair' && (r.selected || r.nominated) && r.state === 'succeeded') par = r; });
-    if (!par) return 'desconocida';
-    const tipos = [stats.get(par.localCandidateId), stats.get(par.remoteCandidateId)].map(c => c && c.candidateType);
-    // prflx: la dirección se descubrió al recibir paquetes (habitual con iPhone, que oculta las locales); sigue siendo la wifi.
-    if (tipos.includes('relay')) return 'servidor externo';
-    if (tipos.includes('srflx')) return 'a través del router (' + tipos.join('/') + ')';
-    return 'directa por la wifi' + (tipos.includes('prflx') ? ' (' + tipos.join('/') + ')' : '');
-  } catch (e) { return 'desconocida'; }
-}
-
-function perdida(motivo) {
-  if (rechazado || sustituido) return;
-  cortes++;
-  ultimoCorte = motivo;
-  via = null;
-  estado('Se ha perdido la conexión (' + motivo + '). Reconectando…');
-  pintarDatos();
-  programarReintento();
-}
-
-function programarReintento() {
-  clearTimeout(reintento);
-  reintento = setTimeout(() => { if (!(conn && conn.open)) conectar(); }, 2500);
-}
-
-function recibir(msg) {
-  if (!msg || typeof msg !== 'object') return;
-  switch (msg.tipo) {
-    case 'bienvenida':
-      if (conn) conn.bienvenida = true;
-      document.documentElement.style.setProperty('--mio', msg.color);
-      document.getElementById('ficha').textContent = msg.nombre.charAt(0).toUpperCase();
-      document.getElementById('entrada').classList.add('oculto');
-      document.getElementById('cruceta').classList.remove('oculto');
-      document.getElementById('datos').classList.remove('oculto');
-      estado('Conectado como ' + msg.nombre + '.');
-      marcarSalaDeEstaPestana(sala);
-      mantenerPantalla();
-      break;
-    case 'estado':
-      pos = msg; pintarDatos();
-      break;
-    case 'bloqueado': {
-      if (navigator.vibrate) navigator.vibrate(60);
-      const cr = document.getElementById('cruceta');
-      cr.classList.add('choque');
-      setTimeout(() => cr.classList.remove('choque'), 180);
-      break;
-    }
-    case 'rechazado':
-      rechazado = true;
-      estado(msg.motivo || 'No se puede entrar en la sala.');
-      break;
-    case 'sustituido':
-      sustituido = true;
-      clearTimeout(reintento);
-      document.getElementById('cruceta').classList.add('oculto');
-      estado('Este jugador se ha abierto en otra pestaña o en otro móvil. Para usarlo aquí, recarga esta página.');
-      break;
-    case 'pong':
-      latencia = Math.round(performance.now() - msg.t);
-      ultimoPong = performance.now();
-      pintarDatos();
-      break;
-  }
-}
-
-function pintarDatos() {
-  const partes = [];
-  if (pos) partes.push('Casilla ' + (pos.x + 1) + ', ' + (pos.y + 1));
-  if (latencia !== null) partes.push('Latencia ' + latencia + ' ms');
-  if (pos) partes.push(pos.total + ' en la sala');
-  const lineas = [partes.join('   ')];
-  const callado = ultimoPong ? Math.round((performance.now() - ultimoPong) / 1000) : 0;
-  if (callado >= 5) lineas.push('Sin respuesta del tablero desde hace ' + callado + ' s');
-  lineas.push('Conexión: ' + (via || '…'));
-  lineas.push('Cortes: ' + cortes + (ultimoCorte ? ' (último: ' + ultimoCorte + ')' : ''));
-  lineas.push('Pantalla siempre encendida: ' + estadoPantalla);
-  document.getElementById('datos').textContent = lineas.join('\n');
-}
-setInterval(pintarDatos, 1000);
-
-function enviar(m) { if (conn && conn.open) conn.send(m); }
-
-// Si el tablero deja de contestar (por ejemplo, porque la tele se ha suspendido), la conexión puede seguir
-// pareciendo abierta sin funcionar. Tras 8 s sin respuesta se da por perdida y se reconecta.
-// Solo con la página visible: en segundo plano el navegador frena los temporizadores.
-const SIN_RESPUESTA_MS = 8000;
-let ultimoTic = performance.now();
-setInterval(() => {
-  // Si este temporizador ha estado parado (página congelada al bloquear, aunque Safari no avise con
-  // visibilitychange), el último pong es de antes de congelarse: se da margen en vez de culpar al tablero.
-  const ahora = performance.now();
-  if (ahora - ultimoTic > 4000) ultimoPong = ahora;
-  ultimoTic = ahora;
-  if (!(conn && conn.open)) return;
-  if (document.visibilityState === 'visible' && performance.now() - ultimoPong > SIN_RESPUESTA_MS) {
-    const muerta = conn;
-    conn = null;
-    try { muerta.close(); } catch (e) {}
-    perdida('sin respuesta del tablero');
-    return;
-  }
-  // Si el saludo se perdió, el tablero contesta los pings pero no reconoce al jugador: se repite.
-  if (!conn.bienvenida && conn.holaEnviado && performance.now() - conn.holaEnviado > 4000) {
-    enviar({ tipo: 'hola', id: jugadorId, nombre });
-    conn.holaEnviado = performance.now();
-  }
-  enviar({ tipo: 'ping', t: performance.now() });
-}, 2000);
-
-/* ---------- controles ---------- */
-document.querySelectorAll('#cruceta button').forEach(b => {
-  b.addEventListener('pointerdown', e => {
-    e.preventDefault();
-    mantenerPantalla();
-    enviar({ tipo: 'mover', dx: +b.dataset.dx, dy: +b.dataset.dy });
-  });
-});
-const TECLAS = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] };
-document.addEventListener('keydown', e => {
-  const d = TECLAS[e.key];
-  if (d && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); enviar({ tipo: 'mover', dx: d[0], dy: d[1] }); }
-});
-
-// Al volver de bloquear el móvil, reconecta si hace falta.
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState !== 'visible') return;
-  // Al desbloquear se da un margen: el último pong es de antes de bloquear y aún no ha habido ping nuevo.
-  ultimoPong = performance.now();
-  if (sala) mantenerPantalla();   // el bloqueo de pantalla se suelta al ocultarse la página
-  if (sala && !rechazado && !(conn && conn.open)) conectar();
-});
-</script>
-<script src="../version.js?v=20"></script>
+<script type="module" src="js/mando/main.js?v=21"></script>
+<script nomodule>document.getElementById('estado').textContent = 'Este navegador es demasiado antiguo para el mando.';</script>
+<script src="../version.js?v=21"></script>
 </body>
 </html>

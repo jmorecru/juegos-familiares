@@ -3,104 +3,32 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tablero – prueba de humo</title>
+<title>Mazmorra – tablero</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Grenze+Gotisch:wght@600&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --noche: #1C2140;
-    --noche2: #262C52;
-    --losa: #B9A27C;
-    --losa2: #AD9570;
-    --muro: #3A3530;
-    --tinta: #F2E9D8;
-    --tenue: #A9A4C4;
-    --celda: 48px;
+<link rel="stylesheet" href="css/comun.css?v=21">
+<link rel="stylesheet" href="css/tablero.css?v=21">
+<!-- Cada módulo con el número de versión (lo pone el hook): así el navegador no mezcla ficheros guardados
+     de versiones distintas. Al añadir un módulo, añádelo aquí y en mando.html. -->
+<script type="importmap">
+{
+  "imports": {
+    "./js/comun/almacen.js": "./js/comun/almacen.js?v=21",
+    "./js/comun/diagnostico.js": "./js/comun/diagnostico.js?v=21",
+    "./js/comun/pantalla.js": "./js/comun/pantalla.js?v=21",
+    "./js/red/protocolo.js": "./js/red/protocolo.js?v=21",
+    "./js/red/ice.js": "./js/red/ice.js?v=21",
+    "./js/red/sala.js": "./js/red/sala.js?v=21",
+    "./js/red/cliente.js": "./js/red/cliente.js?v=21",
+    "./js/motor/partida.js": "./js/motor/partida.js?v=21",
+    "./js/tablero/dibujo.js": "./js/tablero/dibujo.js?v=21",
+    "./js/tablero/registro.js": "./js/tablero/registro.js?v=21",
+    "./js/tablero/main.js": "./js/tablero/main.js?v=21",
+    "./js/mando/main.js": "./js/mando/main.js?v=21"
   }
-  * { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; }
-  body {
-    background: var(--noche);
-    color: var(--tinta);
-    font-family: 'Fredoka', system-ui, sans-serif;
-    display: grid;
-    /* minmax(0, …): la columna del tablero no crece con su contenido; si no, el tablero no encoge al reducirse la pantalla. */
-    grid-template-columns: minmax(0, 1fr) minmax(260px, 24vw);
-    overflow: hidden;
-  }
-  #zona { display: grid; place-items: center; padding: 2vmin; min-height: 0; min-width: 0; overflow: hidden; }
-  #tablero { position: relative; outline: 4px solid var(--tinta); }
-  /* Posición y tamaño de casillas y fichas: en píxeles desde colocar(), no con calc(var()). */
-  .casilla { position: absolute; left: 0; top: 0; }
-  .losa { background: var(--losa); outline: 1px solid var(--losa2); }
-  .muro { background: var(--muro); border-radius: 3px; }
-  .ficha {
-    position: absolute; left: 0; top: 0;
-    display: grid; place-items: center;
-    transition: transform 160ms ease-out;
-  }
-  .ficha div {
-    /* Porcentajes del tamaño de la ficha (un padding en % se mediría sobre el ancho del tablero). */
-    width: 76%; height: 76%; border-radius: 50%;
-    display: grid; place-items: center;
-    font-weight: 600; font-size: calc(var(--celda) * 0.42);
-    color: #fff; border: 3px solid rgba(255,255,255,.85);
-  }
-  .ficha.ausente div { opacity: .35; }
-  aside {
-    background: var(--noche2);
-    padding: 24px 20px;
-    display: flex; flex-direction: column; gap: 18px;
-    overflow-y: auto;
-  }
-  h1 { font-family: 'Grenze Gotisch', serif; font-weight: 600; font-size: 2rem; margin: 0; line-height: 1; }
-  #codigo { font-size: 3rem; font-weight: 600; letter-spacing: .12em; line-height: 1; }
-  #qr { background: var(--tinta); padding: 10px; border-radius: 8px; width: fit-content; }
-  #qr img, #qr canvas { display: block; }
-  .ayuda { color: var(--tenue); font-size: .95rem; margin: 0; }
-  #url { color: var(--tenue); font-size: .75rem; word-break: break-all; }
-  ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
-  li { display: flex; align-items: center; gap: 10px; }
-  .punto { width: 16px; height: 16px; border-radius: 50%; flex: none; }
-  li .est { margin-left: auto; color: var(--tenue); font-size: .85rem; }
-  #verRegistro {
-    margin-top: auto; align-self: flex-start; cursor: pointer;
-    font: inherit; font-size: .8rem; padding: 4px 10px; border-radius: 6px;
-    border: 1px solid var(--tenue); background: transparent; color: var(--tinta);
-  }
-  #log { font-size: .75rem; color: var(--tenue); min-height: 6em; cursor: pointer; }
-  #log p, #logCompleto p { margin: 2px 0; }
-  /* Registro completo: se abre al pulsar sobre el registro y se cierra con otro clic. */
-  #registro {
-    position: fixed; inset: 0; z-index: 50; overflow-y: auto; cursor: pointer;
-    background: rgba(28, 33, 64, .97); padding: 24px 32px; font-size: .9rem;
-  }
-  #registro h2 { margin: 0 0 12px; font-size: 1.3rem; }
-  .oculto { display: none !important; }
-  /* Pantallas bajas (Silk en el Fire Stick: 960×540 o menos si muestra su barra). Todo tiene que caber
-     sin desplazar la columna, así que los tamaños van en vh (proporcionales a la altura disponible). */
-  @media (max-height: 640px) and (min-aspect-ratio: 1/1) {
-    aside { padding: 2.4vh 16px; gap: 1.5vh; font-size: max(11px, 2.9vh); }
-    h1 { font-size: 5.4vh; }
-    #codigo { font-size: 7vh; }
-    #qr { padding: 1vh; }
-    #qr img, #qr canvas { width: 21vh; height: 21vh; }
-    #url { display: none; }
-    .ayuda { font-size: max(10px, 2.5vh); }
-    ul { gap: .8vh; }
-    .punto { width: 2.6vh; height: 2.6vh; }
-    #log { min-height: 0; overflow: hidden; font-size: max(9px, 2.1vh); }
-  }
-  @media (max-height: 470px) and (min-aspect-ratio: 1/1) {
-    #ayudaQr { display: none; }
-  }
-  @media (max-aspect-ratio: 1/1) {
-    body { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
-    aside { flex-direction: row; flex-wrap: wrap; align-items: flex-start; }
-    #log { display: none; }
-  }
-</style>
+}
+</script>
 </head>
 <body>
   <div id="zona"><div id="tablero"></div></div>
@@ -114,11 +42,10 @@
     <p class="ayuda" id="ayudaQr">Escanea el código con el móvil para unirte.</p>
     <div id="url"></div>
     <ul id="lista"></ul>
-    <p class="ayuda" id="pantalla">Pantalla siempre encendida: comprobando…</p>
-    <p class="ayuda" id="modulos">Módulos ES: no</p>
-    <p class="ayuda" id="medidas"></p>
-    <button id="verRegistro" type="button">Ver registro completo</button>
-    <div id="log" title="Pulsa para ver el registro completo"></div>
+    <p class="ayuda" id="pantalla"></p>
+    <p class="ayuda solo-diag" id="medidas"></p>
+    <button id="verRegistro" class="solo-diag" type="button">Ver registro completo</button>
+    <div id="log" class="solo-diag" title="Pulsa para ver el registro completo"></div>
   </aside>
   <div id="registro" class="oculto">
     <h2>Registro de eventos</h2>
@@ -128,302 +55,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script>
-const PREFIJO = 'mazmorra-familia-';
-const MAX_JUGADORES = 5;
-const COLORES = ['#D7263D', '#1B6CA8', '#E0A000', '#2E8B57', '#7B3FA0'];
-const MAPA = [
-  '............',
-  '..##....##..',
-  '..#......#..',
-  '............',
-  '.....##.....',
-  '..#......#..',
-  '..##....##..',
-  '............',
-];
-const FILAS = MAPA.length, COLS = MAPA[0].length;
-const SALIDAS = [[0,0],[11,0],[0,7],[11,7],[6,3]];
-
-const jugadores = new Map();   // id -> {nombre, color, x, y, conn, ficha}
-let peer = null;
-
-/* ---------- utilidades ---------- */
-const registro = [];   // últimos eventos, el más reciente primero
-function log(txt) {
-  registro.unshift(new Date().toLocaleTimeString() + '  ' + txt);
-  if (registro.length > 50) registro.length = 50;
-  for (const id of ['log', 'logCompleto']) {
-    const el = document.getElementById(id);
-    el.textContent = '';
-    for (const t of registro) {
-      const p = document.createElement('p');
-      p.textContent = t;
-      el.appendChild(p);
-    }
-  }
-}
-for (const id of ['log', 'verRegistro']) {
-  document.getElementById(id).addEventListener('click', () => document.getElementById('registro').classList.remove('oculto'));
-}
-document.getElementById('registro').addEventListener('click', () => document.getElementById('registro').classList.add('oculto'));
-function guardar(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
-function leer(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
-function nuevoCodigo() {
-  const letras = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-  let c = '';
-  for (let i = 0; i < 4; i++) c += letras[Math.floor(Math.random() * letras.length)];
-  return c;
-}
-function esMuro(x, y) { return MAPA[y][x] === '#'; }
-function ocupada(x, y, salvo) {
-  for (const [id, j] of jugadores) if (id !== salvo && j.x === x && j.y === y) return true;
-  return false;
-}
-
-/* ---------- tablero ---------- */
-const tablero = document.getElementById('tablero');
-const casillas = [];   // {el, x, y}
-let celda = 48;
-
-function colocar(el, x, y) {
-  el.style.width = el.style.height = celda + 'px';
-  el.style.transform = 'translate(' + x * celda + 'px, ' + y * celda + 'px)';
-}
-function dibujarTablero() {
-  for (let y = 0; y < FILAS; y++) for (let x = 0; x < COLS; x++) {
-    const el = document.createElement('div');
-    el.className = 'casilla ' + (esMuro(x, y) ? 'muro' : 'losa');
-    tablero.appendChild(el);
-    casillas.push({ el, x, y });
-  }
-}
-function ajustarTamano() {
-  const zona = document.getElementById('zona');
-  const w = zona.clientWidth * 0.96, h = zona.clientHeight * 0.96;
-  const nueva = Math.max(8, Math.floor(Math.min(w / COLS, h / FILAS)));
-  document.getElementById('medidas').textContent =
-    'Pantalla ' + innerWidth + '×' + innerHeight + ' · casilla ' + nueva + ' px · escala ' + (devicePixelRatio || 1);
-  if (nueva === celda && casillas[0].el.style.width) return;
-  celda = nueva;
-  document.documentElement.style.setProperty('--celda', celda + 'px');
-  tablero.style.width = celda * COLS + 'px';
-  tablero.style.height = celda * FILAS + 'px';
-  for (const c of casillas) colocar(c.el, c.x, c.y);
-  for (const j of jugadores.values()) if (j.ficha) colocar(j.ficha, j.x, j.y);
-}
-function pintarFicha(j) {
-  if (!j.ficha) {
-    j.ficha = document.createElement('div');
-    j.ficha.className = 'ficha';
-    j.ficha.innerHTML = '<div></div>';
-    tablero.appendChild(j.ficha);
-  }
-  const d = j.ficha.firstChild;
-  d.style.background = j.color;
-  d.textContent = (j.nombre || '?').charAt(0).toUpperCase();
-  colocar(j.ficha, j.x, j.y);
-  j.ficha.classList.toggle('ausente', !conectado(j));
-}
-function pintarLista() {
-  const ul = document.getElementById('lista');
-  ul.innerHTML = '';
-  for (const j of jugadores.values()) {
-    const li = document.createElement('li');
-    li.innerHTML = '<span class="punto"></span><span class="nom"></span><span class="est"></span>';
-    li.querySelector('.punto').style.background = j.color;
-    li.querySelector('.nom').textContent = j.nombre;
-    li.querySelector('.est').textContent = conectado(j) ? (j.via || 'conectado') : 'desconectado';
-    ul.appendChild(li);
-  }
-}
-function conectado(j) { return j.conn && j.conn.open; }
-function refrescar() {
-  for (const j of jugadores.values()) pintarFicha(j);
-  pintarLista();
-}
-
-/* ---------- red ---------- */
-function abrirSala(codigo, intentos = 0) {
-  peer = new Peer(PREFIJO + codigo, { debug: 1 });
-
-  peer.on('open', () => {
-    guardar('sala', codigo);
-    document.getElementById('codigo').textContent = codigo;
-    const url = new URL('mando.html?sala=' + codigo, location.href).href;
-    const qr = document.getElementById('qr');
-    qr.innerHTML = '';
-    new QRCode(qr, { text: url, width: 180, height: 180, colorDark: '#1C2140', colorLight: '#F2E9D8', correctLevel: QRCode.CorrectLevel.M });
-    document.getElementById('url').textContent = url;
-    log('Sala ' + codigo + ' abierta');
-  });
-
-  peer.on('connection', conn => {
-    conn.ultimoMensaje = performance.now();
-    // Diagnóstico de la Fase 0: registra cada cambio de estado de la conexión directa.
-    const pc = conn.peerConnection;
-    if (pc) pc.addEventListener('iceconnectionstatechange', () => {
-      const j = jugadores.get(conn.jugadorId);
-      log('ICE ' + (j ? j.nombre : 'nuevo') + ': ' + pc.iceConnectionState);
-    });
-    conn.on('data', msg => procesar(conn, msg));
-    conn.on('close', () => perdida(conn));
-    conn.on('error', () => perdida(conn));
-  });
-
-  peer.on('disconnected', () => {
-    log('Sin servidor de emparejamiento, reintentando');
-    setTimeout(() => { if (!peer.destroyed) peer.reconnect(); }, 2000);
-  });
-
-  peer.on('error', err => {
-    log('Error: ' + err.type);
-    if (err.type === 'unavailable-id') {
-      // Tras recargar, el servidor puede tardar unos segundos en liberar el código anterior.
-      peer.destroy();
-      if (intentos < 4) setTimeout(() => abrirSala(codigo, intentos + 1), 3000);
-      else abrirSala(nuevoCodigo());
-    } else if (peer.destroyed) {
-      setTimeout(() => abrirSala(codigo), 3000);
-    }
-  });
-}
-
-function procesar(conn, msg) {
-  if (!msg || typeof msg !== 'object') return;
-  conn.ultimoMensaje = performance.now();
-
-  if (msg.tipo === 'ping') { conn.send({ tipo: 'pong', t: msg.t }); return; }
-
-  if (msg.tipo === 'hola') {
-    const id = String(msg.id || '').slice(0, 64);
-    const nombre = String(msg.nombre || 'Jugador').slice(0, 16);
-    let j = jugadores.get(id);
-    if (j) {
-      const vieja = j.conn;
-      if (vieja && vieja !== conn) {
-        if (vieja.open) {
-          // Misma identidad con la conexión anterior aparentemente abierta. Puede ser otra pestaña u otro
-          // dispositivo, o la misma tablet que vuelve de suspenderse y dejó la anterior muerta sin cerrar.
-          // Se avisa a la anterior para que, si sigue viva, deje de reconectar (si no, se quitarían el sitio sin parar).
-          try { vieja.send({ tipo: 'sustituido' }); } catch (e) {}
-          setTimeout(() => { try { vieja.close(); } catch (e) {} }, 500);
-          log(nombre + ' vuelve a entrar; se cierra su conexión anterior');
-        } else {
-          try { vieja.close(); } catch (e) {}
-          log(nombre + ' ha vuelto');
-        }
-      } else {
-        log(nombre + ' ha vuelto');
-      }
-      j.conn = conn; j.nombre = nombre;
-    } else {
-      if (jugadores.size >= MAX_JUGADORES) { conn.send({ tipo: 'rechazado', motivo: 'La sala está llena.' }); return; }
-      const usados = new Set([...jugadores.values()].map(p => p.color));
-      const color = COLORES.find(c => !usados.has(c));
-      const salida = SALIDAS.find(([x, y]) => !ocupada(x, y)) || [0, 0];
-      j = { nombre, color, x: salida[0], y: salida[1], conn };
-      jugadores.set(id, j);
-      log(nombre + ' se une');
-    }
-    conn.jugadorId = id;
-    j.via = null;
-    setTimeout(() => tipoConexion(conn.peerConnection).then(t => {
-      if (j.conn !== conn) return;
-      j.via = t; log(j.nombre + ': conexión ' + t); pintarLista();
-    }), 1500);
-    conn.send({ tipo: 'bienvenida', color: j.color, nombre: j.nombre });
-    enviarEstado();
-    refrescar();
-    return;
-  }
-
-  const j = jugadores.get(conn.jugadorId);
-  if (!j || j.conn !== conn) return;   // solo manda la conexión actual del jugador
-
-  if (msg.tipo === 'mover') {
-    let dx = Math.sign(msg.dx | 0), dy = Math.sign(msg.dy | 0);
-    if (dx && dy) dy = 0;
-    const nx = j.x + dx, ny = j.y + dy;
-    const valido = nx >= 0 && ny >= 0 && nx < COLS && ny < FILAS && !esMuro(nx, ny) && !ocupada(nx, ny, conn.jugadorId);
-    if (valido) { j.x = nx; j.y = ny; pintarFicha(j); enviarEstado(); }
-    else conn.send({ tipo: 'bloqueado' });
-  }
-}
-
-// Un mando que se suspende (por ejemplo, una Fire HD) puede dejar la conexión muerta sin cerrarla.
-// Los mandos envían un ping cada 2 s; si una conexión pasa 30 s sin dar señales, se cierra y la ficha
-// queda como desconectada. 30 s para que un bloqueo corto del móvil no cuente como corte.
-const SIN_NOTICIAS_MS = 30000;
-setInterval(() => {
-  for (const j of jugadores.values()) {
-    if (conectado(j) && performance.now() - (j.conn.ultimoMensaje || 0) > SIN_NOTICIAS_MS) {
-      log(j.nombre + ': 30 s sin noticias, se da por desconectado');
-      try { j.conn.close(); } catch (e) {}   // PeerJS emite 'close' en el acto: perdida() la registra
-      refrescar();
-    }
-  }
-}, 5000);
-
-function perdida(conn) {
-  const j = jugadores.get(conn.jugadorId);
-  if (j && j.conn === conn) {
-    const ice = conn.peerConnection ? conn.peerConnection.iceConnectionState : 'sin datos';
-    log(j.nombre + ' se ha desconectado (ICE ' + ice + ')');
-    refrescar();
-  }
-}
-
-// Tipo de candidato ICE en uso: host = directa por la wifi, srflx = a través del router, relay = servidor externo.
-async function tipoConexion(pc) {
-  if (!pc || !pc.getStats) return 'desconocida';
-  try {
-    const stats = await pc.getStats();
-    let par = null;
-    stats.forEach(r => { if (r.type === 'transport' && r.selectedCandidatePairId) par = stats.get(r.selectedCandidatePairId); });
-    if (!par) stats.forEach(r => { if (r.type === 'candidate-pair' && (r.selected || r.nominated) && r.state === 'succeeded') par = r; });
-    if (!par) return 'desconocida';
-    const tipos = [stats.get(par.localCandidateId), stats.get(par.remoteCandidateId)].map(c => c && c.candidateType);
-    // prflx: la dirección se descubrió al recibir paquetes (habitual con iPhone, que oculta las locales); sigue siendo la wifi.
-    if (tipos.includes('relay')) return 'servidor externo';
-    if (tipos.includes('srflx')) return 'a través del router (' + tipos.join('/') + ')';
-    return 'directa por la wifi' + (tipos.includes('prflx') ? ' (' + tipos.join('/') + ')' : '');
-  } catch (e) { return 'desconocida'; }
-}
-
-function enviarEstado() {
-  // Cada mando recibe solo su propia información: así probamos ya la idea de información privada.
-  for (const j of jugadores.values()) {
-    if (conectado(j)) j.conn.send({ tipo: 'estado', x: j.x, y: j.y, total: jugadores.size });
-  }
-}
-
-/* ---------- pantalla siempre encendida ---------- */
-async function pedirPantalla() {
-  const txt = document.getElementById('pantalla');
-  if (!('wakeLock' in navigator)) { txt.textContent = 'Pantalla siempre encendida: no disponible en este navegador.'; return; }
-  try {
-    const bloqueo = await navigator.wakeLock.request('screen');
-    txt.textContent = 'Pantalla siempre encendida: sí.';
-    bloqueo.addEventListener('release', () => { txt.textContent = 'Pantalla siempre encendida: desactivada.'; });
-  } catch (e) {
-    txt.textContent = 'Pantalla siempre encendida: toca la pantalla para activarla.';
-  }
-}
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') pedirPantalla(); });
-document.addEventListener('pointerdown', pedirPantalla, { once: true });
-
-/* ---------- arranque ---------- */
-dibujarTablero();
-ajustarTamano();
-window.addEventListener('resize', ajustarTamano);
-// También cuando cambia el espacio sin que cambie la ventana (por ejemplo, al aparecer el QR).
-if (window.ResizeObserver) new ResizeObserver(ajustarTamano).observe(document.getElementById('zona'));
-pedirPantalla();
-abrirSala(leer('sala') || nuevoCodigo());
-</script>
-<!-- Fase 0: la Fase 1 usará módulos ES; si este navegador no los ejecuta, el texto se queda en "no". -->
-<script type="module">document.getElementById('modulos').textContent = 'Módulos ES: sí';</script>
-<script src="../version.js?v=20"></script>
+<script type="module" src="js/tablero/main.js?v=21"></script>
+<script nomodule>document.getElementById('ayudaQr').textContent = 'Este navegador es demasiado antiguo para el tablero.';</script>
+<script src="../version.js?v=21"></script>
 </body>
 </html>
